@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true,
+		"swaggerhub.apiKey": "303e94f0-0c24-4921-a777-332adc5a87ff"
+	}
+}

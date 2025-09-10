@@ -1,0 +1,88 @@
+/*
+* Prefixed by https://autoprefixer.github.io
+* PostCSS: v7.0.29,
+* Autoprefixer: v9.7.6
+* Browsers: last 4 version
+*/
+
+* {
+  padding: 0;
+  margin: 0;
+}
+
+:root {
+  --logoHeader: 60px;
+  --sidebarNav: 70px;
+  --colorLogo: #888fdc;
+  --colorBar: #d2d7e0;
+  --colorBarW: #b7bec7;
+  --colorWhite: white;
+  --colorNav: #f5f5f5;
+  --colorIcon: #a1ffff;
+  --colorName: #707090;
+}
+
+body {
+  background: -webkit-gradient(linear, left top, right top, from(#bad6f9), to(#bccdf2));
+  background: -o-linear-gradient(left, #bad6f9 0%, #bccdf2 100%);
+  background: linear-gradient(90deg, #bad6f9 0%, #bccdf2 100%);
+  font-family: "Roboto", sans-serif;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+}
+
+@font-face {
+  font-family: "Roboto", sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/materialicons/v38/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2)
+    format("woff2");
+}
+
+.material-icons {
+  font-family: "Roboto", sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
+
+.kanban {
+  display: -ms-grid;
+  display: grid;
+  -ms-grid-rows: var(--logoHeader) var(--sidebarNav) auto;
+  -ms-grid-columns: minmax(auto, 120px) minmax(290px, 1920px);
+  grid-template:
+    "logo header" var(--logoHeader) 
+    "sidebar main" var(--sidebarNav) 
+    "sidebar main" auto / minmax(auto, 120px) minmax(290px, 1920px);
+}
+
+
+a {
+  text-decoration: none;
+}
+
+.loading {
+  color: var(--colorWhite);
+  font-size: 14px;
+  margin: auto;
+}
+@media(max-width: 450px){
+  .kanban {
+    -ms-grid-rows: var(--logoHeader) auto auto;
+    -ms-grid-columns: minmax(auto, 45px) minmax(290px, 1920px);
+        grid-template:
+    "logo header" var(--logoHeader) "sidebar main" auto "sidebar main" auto
+    / minmax(auto, 45px) minmax(290px, 1920px);
+  }
+}

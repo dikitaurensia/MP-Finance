@@ -1,0 +1,880 @@
+<?php
+// include("compressimage.php");
+$db = mysqli_connect("185.224.137.214", "u104359481_admin", "A1b2c3d4!", "u104359481_tracking");
+
+$msg = "";
+$idlamaran = round(microtime(true));
+if (isset($_POST['upload'])) {
+
+  // //   $target = "images/".$addname.basename($image);
+  // //   $target2 = "images/".$addname.basename($image2);
+
+  //   $target = "images/".basename($image);
+  //   $target2 = "images/".basename($image2);
+
+  $tgllamaran = date("Y-m-d");
+  $posisilamaran = "";
+  $fotoselfi = $_FILES['fotoselfi']['name'];
+  $namadepan = mysqli_real_escape_string($db, $_POST['namadepan']);
+  $namabelakang = mysqli_real_escape_string($db, $_POST['namabelakang']);
+  $tempatlahir = mysqli_real_escape_string($db, $_POST['tempatlahir']);
+  $tgllahir = mysqli_real_escape_string($db, $_POST['tgllahir']);
+  $notelp = mysqli_real_escape_string($db, $_POST['notelp']);
+  $alamatktp = mysqli_real_escape_string($db, $_POST['alamatktp']);
+  $keluarahanktp = mysqli_real_escape_string($db, $_POST['keluarahanktp']);
+  $kecamatanktp = mysqli_real_escape_string($db, $_POST['kecamatanktp']);
+  $kotaktp = mysqli_real_escape_string($db, $_POST['kotaktp']);
+  $alamatdomisili = mysqli_real_escape_string($db, $_POST['alamatdomisili']);
+  $kelurahandomisili = mysqli_real_escape_string($db, $_POST['kelurahandomisili']);
+  $kecamatandomisili = mysqli_real_escape_string($db, $_POST['kecamatandomisili']);
+  $kotadomisili = mysqli_real_escape_string($db, $_POST['kotadomisili']);
+  $agama = "";
+  $ktp = mysqli_real_escape_string($db, $_POST['ktp']);
+  $sima = "";
+  $simaberlaku = "";
+  $simb = "";
+  $simbberlaku = "";
+  $simc = "";
+  $simcberlaku = "";
+  $simlain = "";
+  $simlainberlaku =   "";
+  $npwm = mysqli_real_escape_string($db, $_POST['npwm']);
+  $statuspernikahan = "";
+  $namapasangan = mysqli_real_escape_string($db, $_POST['namapasangan']);
+  $jmlanak = "";
+  $namadarurat = mysqli_real_escape_string($db, $_POST['namadarurat']);
+  $statusdarurat = mysqli_real_escape_string($db, $_POST['statusdarurat']);
+  $notelpdarurat = mysqli_real_escape_string($db, $_POST['notelpdarurat']);
+  $ayah = mysqli_real_escape_string($db, $_POST['ayah']);
+  $ibu = mysqli_real_escape_string($db, $_POST['ibu']);
+  $saudara1 = mysqli_real_escape_string($db, $_POST['saudara1']);
+  $saudara2 = mysqli_real_escape_string($db, $_POST['saudara2']);
+  $saudara3 = mysqli_real_escape_string($db, $_POST['saudara3']);
+  $pendidikanterakhir = mysqli_real_escape_string($db, $_POST['pendidikanterakhir']);
+  $tempatpendidikan = mysqli_real_escape_string($db, $_POST['tempatpendidikan']);
+  $nilaipendidikan = mysqli_real_escape_string($db, $_POST['nilaipendidikan']);
+  $inggrisbaca = "";
+  $inggrisbicara = "";
+  $mandarinbaca = "";
+  $mandarinbicara = "";
+  $jenispekerjaanterakhir = mysqli_real_escape_string($db, $_POST['jenispekerjaanterakhir']);
+  $jobdeskterakhir = mysqli_real_escape_string($db, $_POST['jobdeskterakhir']);
+  $temanbekerja = mysqli_real_escape_string($db, $_POST['temanbekerja']);
+  $pernahlamar = mysqli_real_escape_string($db, $_POST['pernahlamar']);
+  $parttime = mysqli_real_escape_string($db, $_POST['parttime']);
+  $referensikerja = mysqli_real_escape_string($db, $_POST['referensikerja']);
+  $citacita = mysqli_real_escape_string($db, $_POST['citacita']);
+  $minimalgaji = mysqli_real_escape_string($db, $_POST['minimalgaji']);
+  $suratlamaran = $_FILES['suratlamaran']['name'];
+  $fotoktp = $_FILES['fotoktp']['name'];
+  $fotosim = $_FILES['fotosim']['name'];
+  $ijazah = $_FILES['ijazah']['name'];
+  $skck = $_FILES['skck']['name'];
+
+  $sql = "insert into `lamaran` (`idlamaran`, `tgllamaran`, `posisilamaran`, `fotoselfi`, `namadepan`, `namabelakang`, `tempatlahir`, `tgllahir`, `notelp`, 
+  `alamatktp`, `keluarahanktp`, `kecamatanktp`, `kotaktp`, `alamatdomisili`, `kelurahandomisili`, `kecamatandomisili`, `kotadomisili`, `agama`, `ktp`, `sima`, 
+  `simaberlaku`, `simb`, `simbberlaku`, `simc`, `simcberlaku`, `simlain`, `simlainberlaku`, `npwm`, `statuspernikahan`, `namapasangan`, `jmlanak`, `namadarurat`, 
+  `statusdarurat`, `notelpdarurat`, `ayah`, `ibu`, `saudara1`, `saudara2`, `saudara3`, `pendidikanterakhir`, `tempatpendidikan`, `nilaipendidikan`, `inggrisbaca`, 
+  `inggrisbicara`, `mandarinbaca`, `mandarinbicara`, `jenispekerjaanterakhir`, `jobdeskterakhir`, `temanbekerja`, `pernahlamar`, `parttime`, `referensikerja`, 
+  `citacita`, `minimalgaji`, `suratlamaran`, `fotoktp`, `fotosim`, `ijazah`, `skck`) values(
+    '$idlamaran', 
+    '$tgllamaran', 
+    '$posisilamaran', 
+    '$fotoselfi', 
+    '$namadepan', 
+    '$namabelakang', 
+    '$tempatlahir', 
+    '$tgllahir', 
+    '$notelp', 
+    '$alamatktp', 
+    '$keluarahanktp', 
+    '$kecamatanktp', 
+    '$kotaktp', 
+    '$alamatdomisili', 
+    '$kelurahandomisili', 
+    '$kecamatandomisili', 
+    '$kotadomisili', 
+    '$agama', 
+    '$ktp', 
+    '$sima', 
+    '$simaberlaku', 
+    '$simb', 
+    '$simbberlaku', 
+    '$simc', 
+    '$simcberlaku', 
+    '$simlain', 
+    '$simlainberlaku', 
+    '$npwm', 
+    '$statuspernikahan', 
+    '$namapasangan', 
+    '$jmlanak', 
+    '$namadarurat', 
+    '$statusdarurat', 
+    '$notelpdarurat', 
+    '$ayah', 
+    '$ibu', 
+    '$saudara1', 
+    '$saudara2', 
+    '$saudara3', 
+    '$pendidikanterakhir', 
+    '$tempatpendidikan', 
+    '$nilaipendidikan', 
+    '$inggrisbaca', 
+    '$inggrisbicara', 
+    '$mandarinbaca', 
+    '$mandarinbicara', 
+    '$jenispekerjaanterakhir', 
+    '$jobdeskterakhir', 
+    '$temanbekerja', 
+    '$pernahlamar', 
+    '$parttime', 
+    '$referensikerja', 
+    '$citacita', 
+    '$minimalgaji', 
+    '$suratlamaran', 
+    '$fotoktp', 
+    '$fotosim', 
+    '$ijazah', 
+    '$skck');";
+
+  mysqli_query($db, $sql);
+
+  if ((move_uploaded_file($_FILES['fotoselfi']['tmp_name'], "images/" . $idlamaran . "_" . $fotoselfi)) && (move_uploaded_file($_FILES['suratlamaran']['tmp_name'], "images/" . $idlamaran . "_" . $suratlamaran))) {
+    $msg = "Image uploaded successfully";
+  } else {
+    $msg = "Failed to upload image";
+  }
+}
+// $result = mysqli_query($db, "SELECT * FROM lamaran where idlamaran=" . $idlamaran);
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" href="styles.css" type="text/css">
+  <link rel="stylesheet" href="./font-awesome/css/font-awesome.min.css">
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/screw-filereader@1.4.3/index.min.js"></script>
+  <title>Job Application Form</title>
+</head>
+
+<body>
+  <div class="App">
+    <div id="form-content">
+      <div class="form-title">
+        <h1>Job Application Form</h1>
+      </div>
+      <div class="form-app">
+        <form method="POST" action="index.php" enctype="multipart/form-data">
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">1.</span>
+              <label>Nama Lengkap</label>
+            </div>
+            <div class="field-input grid gap-20 layout-template-1">
+              <div class="input-1">
+                <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama Depan" class="no-outline" name="namadepan" />
+              </div>
+              <div class="input-1">
+                <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama Belakang" class="no-outline" name="namabelakang" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">2.</span>
+              <label>Tanggal Lahir</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-calendar-o ic-field" aria-hidden="true"></i>
+                <input placeholder="Tanggal Lahir" class="no-outline" name="tgllahir" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">3.</span>
+              <label>Tempat Lahir</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                <input placeholder="Tempat Lahir" class="no-outline" name="tempatlahir" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">4.</span>
+              <label>Nomor WA/Kontak yang dapat dihubungu</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-phone ic-field" aria-hidden="true"></i>
+                <input placeholder="Nomor yang dapat dihubungi" class="no-outline" name="notelp" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">5.</span>
+              <label>Alamat sesuai KTP</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama Jalan dan Nomor Rumah" class="no-outline" name="alamatktp" />
+              </div>
+            </div>
+            <div class="child-field grid layout-template-3 gap-5">
+              <div class="field-input flex gap-20">
+                <div class="input-1">
+                  <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                  <input placeholder="Kelurahan" class="no-outline" name="keluarahanktp" />
+                </div>
+              </div>
+              <div class="field-input flex gap-20">
+                <div class="input-1">
+                  <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                  <input placeholder="Kecamatan" class="no-outline" name="kecamatanktp" />
+                </div>
+              </div>
+              <div class="field-input flex gap-20">
+                <div class="input-1">
+                  <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                  <input placeholder="Kota" class="no-outline" name="kotaktp" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">6.</span>
+              <label>Alamat Tinggal Sekarang</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama Jalan dan Nomor Rumah" class="no-outline" name="alamatdomisili" />
+              </div>
+            </div>
+            <div class="child-field grid layout-template-3 gap-5">
+              <div class="field-input flex gap-20">
+                <div class="input-1">
+                  <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                  <input placeholder="Kelurahan" class="no-outline" name="kelurahandomisili" />
+                </div>
+              </div>
+              <div class="field-input flex gap-20">
+                <div class="input-1">
+                  <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                  <input placeholder="Kecamatan" class="no-outline" name="kecamatandomisili" />
+                </div>
+              </div>
+              <div class="field-input flex gap-20">
+                <div class="input-1">
+                  <i class="fa fa-map-marker ic-field" aria-hidden="true"></i>
+                  <input placeholder="Kota" class="no-outline" name="kotadomisili" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">7.</span>
+              <label>Agama</label>
+            </div>
+            <div class="field-input">
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Islam</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Kristen Protestan</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Katolik</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Buddha</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Hindu</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Other</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" placeholder="Agama lain" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">8.</span>
+              <label>No. KTP</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-id-card-o ic-field" aria-hidden="true"></i>
+                <input placeholder="Nomor KTP yang berlaku" class="no-outline" name="ktp" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">9.</span>
+              <label>SIM yang dimiliki</label>
+            </div>
+            <div class="field-input">
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>SIM A</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>SIM B</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>SIM C</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Other</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" placeholder="Jenis SIM lain" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">10.</span>
+              <label>No. NPWP</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-id-card-o ic-field" aria-hidden="true"></i>
+                <input placeholder="Nomor NPWP" class="no-outline" name="npwm" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">11.</span>
+              <label>Status Pernikahan</label>
+            </div>
+            <div class="field-input">
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Lajang</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Menikah</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Janda/Duda</label>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">12.</span>
+              <label>Nama Suami/Istri (Bagi yang sudah menikah)</label>
+            </div>
+            <div class="field-input flex gap-20">
+              <div class="input-1 full-width">
+                <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama" class="no-outline" name="namapasangan" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">13.</span>
+              <label>Jumlah Anak</label>
+            </div>
+            <div class="field-input">
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>1</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>2</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>3</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" type="radio" />
+                <label>Other</label>
+              </div>
+              <div class="input-2 mt-5">
+                <input class="no-outline" placeholder="Jumlah anak" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">14.</span>
+              <label>Anggota keluarga yang dapat dihubungi</label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama Lengkap" class="no-outline" name="namadarurat" />
+              </div>
+              <div class="input-1 mt-5">
+                <i class="fa fa-handshake-o ic-field" aria-hidden="true"></i>
+                <input placeholder="Hubungan dengan anda ? Orang tua / Saudara" class="no-outline" name="statusdarurat" />
+              </div>
+              <div class="input-1 mt-5">
+                <i class="fa fa-phone ic-field" aria-hidden="true"></i>
+                <input placeholder="Nomor HP" class="no-outline" name="notelpdarurat" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">15.</span>
+              <label>Susunan silsilah keluarga</label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama Ayah" class="no-outline" name="ayah" />
+              </div>
+              <div class="input-1 mt-5">
+                <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama Ibu" class="no-outline" name="ibu" />
+              </div>
+              <div class="mt-5 flex gap-5">
+                <div class="input-1 mt-5">
+                  <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                  <input placeholder="Saudara 1" class="no-outline" name="saudara1" />
+                </div>
+                <div class="input-1 mt-5">
+                  <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                  <input placeholder="Saudara 2" class="no-outline" name="saudara2" />
+                </div>
+                <div class="input-1 mt-5">
+                  <i class="fa fa-user ic-field" aria-hidden="true"></i>
+                  <input placeholder="Saudara 3" class="no-outline" name="saudara3" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">16.</span>
+              <label>Pendidikan terakhir</label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-graduation-cap ic-field" aria-hidden="true"></i>
+                <input placeholder="SD/SMP/SMA/Universitas" class="no-outline" name="pendidikanterakhir" />
+              </div>
+            </div>
+            <div class="field-input mt-5">
+              <div class="input-1">
+                <i class="fa fa-graduation-cap ic-field" aria-hidden="true"></i>
+                <input placeholder="Nama sekolah" class="no-outline" name="tempatpendidikan" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">17.</span>
+              <label>Nilai IP/Ranking terakhir</label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input placeholder="Contoh: Saya ranking 1 dengan nilai A pada saat SMA" class="no-outline" name="nilaipendidikan" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">18.</span>
+              <label>Bahasa yang anda kuasai</label>
+            </div>
+            <table class="field-input-table">
+              <thead>
+                <tr>
+                  <th>Bahasa</th>
+                  <th>Membaca</th>
+                  <th>Menulis</th>
+                  <th>Berbicara</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Inggris</td>
+                  <td class="center"><input type="radio" />
+                  <td class="center"><input type="radio" />
+                  <td class="center"><input type="radio" />
+                </tr>
+                <tr>
+                  <td>Mandarin</td>
+                  <td class="center"><input type="radio" />
+                  <td class="center"><input type="radio" />
+                  <td class="center"><input type="radio" />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">19.</span>
+              <label>Pengalaman Kerja</label>
+            </div>
+            <div class="table-scroll">
+              <table class="field-input-table-2">
+                <thead>
+                  <tr>
+                    <th>Nama Perusahaan</th>
+                    <th>Periode Kerja</th>
+                    <th>Alamat Perusahaan</th>
+                    <th>No Telepon Atasan</th>
+                    <th>Jabatan Awal</th>
+                    <th>Jabatan Terakhir</th>
+                    <th>Nama Atasan Langsung</th>
+                    <th>Alasan Berhenti</th>
+                    <th>Gaji Terakhir</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                    <td class="center">
+                      <div class="input-4">
+                        <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                        <input class="no-outline" />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="footer-table-add">
+              <button class="btn-add-experience"><i class="fa fa-plus" aria-hidden="true"></i></button>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">20.</span>
+              <label>Jelaskan jenis pekerjaan dan job desk yang Anda lakukan di perusahaan terakhir?</label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="jenispekerjaanterakhir" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">21.</span>
+              <label>Jelaskan jenis pekerjaan dan job desk yang pernah Anda lakukan di perusahaan lainnya?</label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="jobdeskterakhir" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">22.</span>
+              <label>Apakah ada teman / Saudara yang bekerja di perusahaan ini? Jika ya, sebutkan.</label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="temanbekerja" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">23.</span>
+              <label>Apakah Anda pernah melamar di perusahaan ini sebelumnya? Jika ya, sebutkan sebagai apa?
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="pernahlamar" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">24.</span>
+              <label>Apakah Anda memiliki pekerjaan part time? Jika ya, Sebutkan.
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="parttime" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">25.</span>
+              <label>Apakah Anda keberatan jika kami meminta referensi dari perusahaan Anda sebelumnya?
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="referensikerja" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">26.</span>
+              <label>Macam pekerjaan atau jabatan apakah yang sesuai dengan cita-cita Anda?
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="citacita" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">27.</span>
+              <label>Besar minimal Gaji yang diharapkan?
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-1">
+                <i class="fa fa-text-width ic-field" aria-hidden="true"></i>
+                <input class="no-outline" name="minimalgaji" />
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">28.</span>
+              <label>Foto Terbaru
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-3">
+                <img id="fotoPreview" width="100px" height="100px" />
+                <input id="uploadFoto" class="no-outline upload-file" type="file" name="fotoselfi" accept="image/*" onchange="change('fotoPreview','uploadFoto');" />
+                <label for="uploadFoto" class="label-upload-foto">Pilih Foto</label>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">29.</span>
+              <label>Foto Surat Lamaran
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-3">
+                <img id="lamaranPreview" width="100px" height="100px" />
+                <input id="uploadLamaran" class="no-outline upload-file" type="file" name="suratlamaran" accept="image/*" onchange="change('lamaranPreview','uploadLamaran');" />
+                <label for="uploadLamaran" class="label-upload-foto">Pilih Foto</label>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">30.</span>
+              <label>Foto KTP
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-3">
+                <img id="ktpPreview" width="100px" height="100px" />
+                <input id="uploadKtp" class="no-outline upload-file" type="file" name="fotoktp" accept="image/*" onchange="change('ktpPreview','uploadKtp');" />
+                <label for="uploadKtp" class="label-upload-foto">Pilih Foto</label>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">31.</span>
+              <label>Foto SIM A/B/C (Abaikan jika tidak ada)
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-3">
+                <img id="simPreview" width="100px" height="100px" />
+                <input id="uploadSim" class="no-outline upload-file" type="file" name="fotosim" accept="image/*" onchange="change('simPreview','uploadSim');" />
+                <label for="uploadSim" class="label-upload-foto">Pilih Foto</label>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">32.</span>
+              <label>Upload Ijazah Terakhir
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-3">
+                <img id="ijazahPreview" width="100px" height="100px" />
+                <input id="uploadIjazah" class="no-outline upload-file" type="file" name="ijazah" accept="image/*" onchange="change('ijazahPreview','uploadIjazah');" />
+                <label for="uploadIjazah" class="label-upload-foto">Pilih Foto</label>
+              </div>
+            </div>
+          </div>
+          <div class="field-wrapper">
+            <div class="flex gap-5 mb-5 label">
+              <span class="order">33.</span>
+              <label>Upload SKCK
+              </label>
+            </div>
+            <div class="field-input">
+              <div class="input-3">
+                <img id="skckPreview" width="100px" height="100px" />
+                <input id="uploadSkck" class="no-outline upload-file" type="file" name="skck" accept="image/*" onchange="change('skckPreview','uploadSkck');" />
+                <label for="uploadSkck" class="label-upload-foto">Pilih Foto</label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <input type="radio" />
+            <label>Pengisian formulir karyawan sudah dianggap sah tanpa diharuskan tanda tangan dari pelamar</label>
+          </div>
+          <div class="footer-btn-submit">
+            <button class="btn-submit" type="submit" name="upload">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function FolderName(a) {
+      return "images/".a
+    }
+
+    function FileListItem(a) {
+      a = [].slice.call(Array.isArray(a) ? a : arguments)
+      for (var c, b = c = a.length, d = !0; b-- && d;) d = a[b] instanceof File
+      if (!d) throw new TypeError("expected argument to FileList is File or array of File objects")
+      for (b = (new ClipboardEvent("")).clipboardData || new DataTransfer; c--;) b.items.add(a[c])
+      return b.files
+    }
+
+    function change(prev, src) {
+      var inputFile = document.getElementById(src);
+      var file = inputFile.files[0];
+
+      if (!file) return
+
+      file.image().then(img => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const maxWidth = 320
+        const maxHeight = 240
+
+        // calculate new size
+        const ratio = Math.min(maxWidth / img.width, maxHeight / img.height)
+        const width = img.width * ratio + .5 | 0
+        const height = img.height * ratio + .5 | 0
+
+        // resize the canvas to the new dimensions
+        canvas.width = width
+        canvas.height = height
+
+        // scale & draw the image onto the canvas
+        ctx.drawImage(img, 0, 0, width, height)
+
+        dataurl = canvas.toDataURL(file.type);
+        document.getElementById(prev).src = dataurl;
+
+        // Get the binary (aka blob)
+        canvas.toBlob(blob => {
+          const resizedFile = new File([blob], file.name, file)
+          const fileList = new FileListItem(resizedFile)
+
+          // temporary remove event listener since
+          // assigning a new filelist to the input
+          // will trigger a new change event...
+          inputFile.onchange = null
+          inputFile.files = fileList
+          inputFile.onchange = change
+        })
+      })
+    }
+  </script>
+</body>
+
+</html>

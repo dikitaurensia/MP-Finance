@@ -1,0 +1,144 @@
+/*
+* Prefixed by https://autoprefixer.github.io
+* PostCSS: v7.0.29,
+* Autoprefixer: v9.7.6
+* Browsers: last 4 version
+*/
+
+.table-schedule {
+  width: 100%;
+  display: table;
+  border-collapse: collapse;
+}
+.thead-schedule {
+  display: table-header-group;
+}
+.tbody-schedule {
+  display: table-row-group;
+}
+.table-row {
+  display: table-row;
+}
+.tbody-cell,
+.thead-cell {
+  display: table-cell;
+}
+
+.table-schedule .thead-cell,
+.table-schedule .tbody-cell {
+  padding: 3px 5px;
+}
+
+.table-schedule .thead-schedule .thead-cell {
+  font-size: 11pt;
+  font-weight: bold;
+  color: #ffffff;
+}
+.table-schedule .thead-cell:not(:last-child) {
+  border-right: 2px solid var(--colorNav);
+}
+.table-schedule .thead-schedule {
+  background: -webkit-gradient(linear, left top, right top, from(#9ea7fc), to(#65b6f7));
+  background: -o-linear-gradient(left, #9ea7fc 0%, #65b6f7 100%);
+  background: linear-gradient(90deg, #9ea7fc 0%, #65b6f7 100%);
+  background: -webkit-linear-gradient(90deg, #9ea7fc 0%, #65b6f7 100%);
+}
+.table-schedule .tbody-cell:nth-child(n + 3) {
+  padding: 10px;
+  -webkit-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+          box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  text-align: center;
+  background-color: #f1f1f1;
+}
+.tag-rit {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.mapboxgl-ctrl-group {
+  visibility: hidden;
+}
+.flex{
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+}
+.gap-5 {
+  grid-gap: 5px;
+}
+.import-layout-widget {
+  display: -ms-grid;
+  display: grid;
+  -ms-grid-columns: 120px 5px auto 5px auto 5px auto;
+  grid-template-columns: auto auto auto auto;
+  grid-gap: 5px;
+}
+.kanban__widget {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  grid-gap: 10px;
+}
+.tags-color {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: end;
+      -ms-flex-pack: end;
+          justify-content: flex-end;
+}
+.tags-color > span {
+  height: -webkit-min-content;
+  height: -moz-min-content;
+  height: min-content;
+}
+.header-schedule {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  width: 100%;
+  margin-bottom: 5px;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  grid-gap: 10px;
+}
+.tags-status:last-child {
+  margin-right: 0;
+}
+.photo {
+  width: 100px;
+  cursor: pointer;
+}
+@media(max-width: 450px){
+  .kanban__widget {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+  }
+  .import-layout-widget {
+    -ms-grid-columns: 45px 5px 1fr 5px 45px 5px 45px;
+    grid-template-columns: 45px 1fr 45px 45px;
+  }
+  .ant-picker-panel-container .ant-picker-panels {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+  }
+  .tags-color {
+    overflow: auto;
+    -webkit-box-pack: unset;
+        -ms-flex-pack: unset;
+            justify-content: unset;
+  }
+}

@@ -1,0 +1,48 @@
+/* Base table styles */
+.table {
+    border-collapse: collapse;
+    width: 100%;
+    border-radius: 8px; /* Rounded corners for the table */
+    overflow: hidden; /* Ensure rounded corners are visible */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+  }
+  
+  /* Header styles */
+  .table th {
+    background-color: #fafafa; /* Light gray header background */
+    color: #000; /* Dark text for contrast */
+    font-weight: 600; /* Bold headers */
+    text-align: left; /* Align text to the left */
+    padding: 12px; /* Add padding */
+    border-bottom: 2px solid #f0f0f0; /* Bottom border for separation */
+  }
+  
+  /* Body styles */
+  .table td {
+    padding: 12px; /* Add padding to cells */
+    border-bottom: 1px solid #f0f0f0; /* Add bottom borders for rows */
+  }
+  
+  /* Row hover effect */
+  .table tr:hover td {
+    background-color: #f6f8fa; /* Slightly darker gray for hover effect */
+  }
+  
+  /* Alternate row coloring */
+  .table tr:nth-child(even) td {
+    background-color: #fafafa; /* Light gray background for alternate rows */
+  }
+  
+  /* Selected row effect (optional) */
+  .table tr.selected td {
+    background-color: #e6f7ff; /* Light blue for selected rows */
+  }
+
+  
+
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+  }

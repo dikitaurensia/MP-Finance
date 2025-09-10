@@ -1,0 +1,14 @@
+.finance__main {
+    padding: 20px;
+    background-color: #f9fafb;
+    /* light gray background */
+    min-height: 100vh;
+}
+
+.finance__main .ant-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.finance__main .ant-card:hover {
+    transform: translateY(-3px);
+}
