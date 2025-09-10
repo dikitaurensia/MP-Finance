@@ -16,18 +16,21 @@
   --colorIcon: #a1ffff;
   --colorName: #707090;
 }
+
 .section {
   display: -ms-grid;
   display: grid;
   -ms-grid-rows: var(--logoHeader) var(--sidebarNav) auto;
   -ms-grid-columns: minmax(auto, 120px) minmax(290px, 1920);
-      grid-template:
+  grid-template:
     "logo header" var(--logoHeader) "sidebar nav" var(--sidebarNav) "sidebar main" auto
     / minmax(auto, 120px) minmax(290px, 1920);
 }
+
 a {
   text-decoration: none;
 }
+
 .logo {
   -ms-grid-row: 1;
   -ms-grid-column: 1;
@@ -40,7 +43,8 @@ a {
   cursor: pointer;
   width: 120px;
 }
-.kanban > .logo {
+
+.kanban>.logo {
   -ms-grid-row: 1;
   -ms-grid-column: 1;
 }
@@ -49,6 +53,7 @@ a {
   width: 55px;
   image-rendering: auto;
 }
+
 .kanban {
   background: var(--colorNav);
   display: -ms-grid;
@@ -65,12 +70,14 @@ a {
   border: 1px solid rgb(235, 237, 240);
   width: 100%;
   background: white !important;
+
   .ant-page-header-heading {
     -webkit-box-align: center;
-        -ms-flex-align: center;
-            align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
   }
 }
+
 .table-antd {
   min-width: 100%;
   z-index: 1;
@@ -83,6 +90,7 @@ a {
 .ant-table-body {
   min-height: calc(100vh - 250px) !important;
 }
+
 .btn-open-portfolio {
   padding: .2em 1em;
   background-color: #65b6f7;
@@ -95,31 +103,37 @@ a {
   transition: 0.4s ease-in;
   border: none;
 }
+
 .btn-open-portfolio:hover {
   background-color: #57a0db;
 }
+
 .btn-open-portfolio:focus,
 .btn-open-portfolio:active,
 .btn-open-portfolio:focus-within {
   background-color: #57a0db;
   border-color: #57a0db;
 }
+
 .btn-tag {
   cursor: pointer;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
   -webkit-box-align: center;
-      -ms-flex-align: center;
-          align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
 }
-.map-dashboard > div {
+
+.map-dashboard>div {
   width: 100% !important;
   height: calc(100vh - var(--sidebarNav)) !important;
 }
+
 .ic-attendance {
   display: none !important;
 }
+
 .fab-chat {
   z-index: 200;
   width: 55px;
@@ -144,47 +158,55 @@ a {
   -ms-transition: 0.3s ease-in-out;
   -o-transition: 0.3s ease-in-out;
 }
-.fab-chat:hover{
+
+.fab-chat:hover {
   background-color: #574c88b9;
 }
-@media(max-width: 450px){
+
+@media(max-width: 450px) {
   .ic-attendance {
     display: inline-block !important;
   }
+
   .kanban {
     -ms-grid-rows: var(--logoHeader) auto auto;
     -ms-grid-columns: minmax(auto, 120px) minmax(290px, 1920);
-        grid-template:
-      "logo header" var(--logoHeader) 
-      "sidebar main" auto 
-      "sidebar main" auto
+    grid-template:
+      "logo header" var(--logoHeader) "sidebar main" auto "sidebar main" auto
       / minmax(auto, 120px) minmax(290px, 1920);
   }
-  .btn-pick-courier, .btn-delete-courier {
+
+  .btn-pick-courier,
+  .btn-delete-courier {
     width: 32px !important;
     height: 32px !important;
     border-radius: 50% !important;
     padding: 3px !important;
   }
+
   .btn-attendance {
-    > .label-btn {
+    >.label-btn {
       display: none;
     }
   }
+
   .btn-pick-courier {
-    > .label-btn {
+    >.label-btn {
       display: none;
     }
   }
+
   .btn-delete-courier {
-    > .label-btn {
+    >.label-btn {
       display: none;
     }
   }
-  .kanban > .logo {
+
+  .kanban>.logo {
     -ms-grid-row: 1;
     -ms-grid-column: 1;
   }
+
   .logo {
     width: auto;
   }
@@ -194,7 +216,7 @@ a {
   color: #4caf50;
 }
 
-.purpleCaption {  
+.purpleCaption {
   color: #9c27b0;
 }
 
@@ -336,3 +358,22 @@ a {
 //     background-color: #357ABD;
 //   }
 // }
+
+.database-select {
+  width: 300px;
+}
+
+/* Target the selector area (the main input field) */
+.database-select .ant-select-selector {
+  border-radius: 8px;
+  /* Rounded corners */
+  border-color: #d9d9d9;
+  box-shadow: none;
+}
+
+/* Adjust the border color on hover and focus */
+.database-select.ant-select-focused .ant-select-selector,
+.database-select:hover .ant-select-selector {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}

@@ -1,13 +1,13 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import Assessment from "@material-ui/icons/Assessment";
+import ViewList from "@material-ui/icons/ViewList";
 class MasterData extends React.Component {
   render() {
     return (
       <NavLink to="/app/master" activeClassName="active-area">
         <div className="sidebar-item">
-          <Assessment className="icon-sidebar" />
-          <span className="label-sidebar">Master Data</span>
+          <ViewList className="icon-sidebar" />
+          <span className="label-sidebar">Sales Invoice</span>
         </div>
       </NavLink>
     );
