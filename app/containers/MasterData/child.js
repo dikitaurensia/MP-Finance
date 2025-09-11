@@ -9,6 +9,7 @@ import moment from "moment";
 const Child = () => {
   const [selectDB, setSelectDB] = useState(0);
   const [selectStatus, setSelectStatus] = useState("true");
+  const [dataCustomer, setDataCustomer] = useState(new Map());
 
   const [databases, setDatabases] = useState([]);
   const [loadingTable, setLoadingTable] = useState(false);
@@ -50,15 +51,6 @@ const Child = () => {
       key: "deliveryPackingNumber",
       width: 150,
     },
-    // {
-    //   title: "Total Invoice",
-    //   dataIndex: "totalAmount",
-    //   key: "totalAmount",
-    //   width: 150,
-    //   render: (value) => (
-    //     <div style={{ textAlign: "right" }}>Rp. {formatCurrency(value)}</div>
-    //   ),
-    // },
     {
       title: "Tgl faktur",
       dataIndex: "transDateView",
@@ -85,8 +77,8 @@ const Child = () => {
     },
     {
       title: "No. Whatsapp",
-      dataIndex: "wanumber",
-      key: "wanumber",
+      dataIndex: "whatsapp",
+      key: "whatsapp",
       width: 150,
     },
     {
@@ -138,6 +130,8 @@ const Child = () => {
     try {
       const response = await getDataFromAccurate(body);
       const data = response.d;
+
+
       setDataSource({
         master_data: data.map((x) => {
           const link = btoa(`${name}:${x.id}`);
@@ -154,9 +148,10 @@ const Child = () => {
 
           return {
             ...x,
-            invoiceLink: `https://invoice.mitranpack.com/index.php?q=${link}`,
+            invoiceLink: `https://pay.mitranpack.com/index.php?q=${link}`,
             customerName: x.customer.name,
-            colorWarning
+            colorWarning,
+            whatsapp: dataCustomer.get(x.customer.name) || ''
           };
         }),
         totalData: response.sp.rowCount,
@@ -181,6 +176,20 @@ const Child = () => {
     }
   };
 
+  const getDataCustomer = async () => {
+    const tableName = "customer";
+    try {
+      const response = await get(tableName);
+      const customerMap = new Map(
+        response.data.filter((x) => x.whatsapp).map((x) => [x.company, x.whatsapp]),
+      );
+      setDataCustomer(customerMap);
+      getDatabase();
+    } catch (error) {
+      ErrorMessage(error);
+    }
+  };
+
   const handleTableChange = (newPagination) => {
     setPagination(newPagination);
   };
@@ -192,7 +201,8 @@ const Child = () => {
 
   // The useEffect hook acts as componentDidMount
   useEffect(() => {
-    getDatabase();
+    getDataCustomer();
+    // getDatabase();
   }, []);
 
   // This useEffect hook is triggered whenever selectDB or pagination changes
