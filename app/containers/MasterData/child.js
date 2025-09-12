@@ -148,7 +148,7 @@ const Child = () => {
 
           return {
             ...x,
-            invoiceLink: `https://pay.mitranpack.com/index.php?q=${link}`,
+            invoiceLink: `https://pay.mitranpack.com/?q=${link}`,
             customerName: x.customer.name,
             colorWarning,
             whatsapp: dataCustomer.get(x.customer.name) || ''
