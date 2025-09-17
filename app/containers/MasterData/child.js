@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { Table, Button, Space, PageHeader, Select } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Table, Button, Space, PageHeader, Select, Spin } from "antd";
 import { get, getDataFromAccurate } from "../../service/endPoint";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
 import { PrinterFilled, WhatsAppOutlined } from "@ant-design/icons";
 import "../../assets/base.scss";
 import moment from "moment";
+import { debounce } from "lodash";
 
 const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(0);
   const [selectStatus, setSelectStatus] = useState("true");
-  const [dataCustomer, setDataCustomer] = useState(new Map());
+  const [selectCustomers, setSelectCustomers] = useState([]);
+  const [dataCustomers, setDataCustomers] = useState([]);
+  const [dataCustomerMap, setDataCustomerMap] = useState(new Map());
 
   const [databases, setDatabases] = useState([]);
   const [loadingTable, setLoadingTable] = useState(false);
@@ -22,6 +25,12 @@ const SalesInvoiceTable = () => {
     pageSize: 50,
   });
   const [selectedRows, setSelectedRows] = useState([]);
+
+  // State for infinite scroll and search on customer filter
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [customerPage, setCustomerPage] = useState(1);
+  const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
+  const [customerSearchKeyword, setCustomerSearchKeyword] = useState("");
 
   const columns = [
     {
@@ -62,8 +71,10 @@ const SalesInvoiceTable = () => {
       dataIndex: "dueDateView",
       key: "dueDateView",
       width: 100,
-      render: (value, _) => (
-        <div style={{ textAlign: "right", color: _.colorWarning }}>{value}</div>
+      render: (value, record) => (
+        <div style={{ textAlign: "right", color: record.colorWarning }}>
+          {value}
+        </div>
       ),
     },
     {
@@ -116,6 +127,7 @@ const SalesInvoiceTable = () => {
     },
   ];
 
+  // --- Data Fetching Logic ---
   const getData = async () => {
     setLoadingTable(true);
     const { current, pageSize } = pagination;
@@ -126,28 +138,39 @@ const SalesInvoiceTable = () => {
       return;
     }
 
-    const { token, host, session, dbname } = db;
-    const name = dbname.toLowerCase().includes("mitra") ? "mitra" : "boss";
+    const { token, host, session } = db;
 
     let queryStatus = "";
     if (selectStatus !== "") {
       queryStatus = `&outstandingFilter=${selectStatus}`;
     }
 
+    let queryCustomer = "";
+    if (selectCustomers.length > 0) {
+      const cust = selectCustomers.map((x) => {
+        // return `{"id": ${x}}`;
+        return `{%22id%22%3A${x}}`;
+      });
+      queryCustomer = `&customerFilter=[${cust.join("%2C")}]`;
+    }
+
     const body = {
       session,
       token,
-      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}`,
+      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}`,
     };
 
     try {
       const response = await getDataFromAccurate(body);
-      const data = response.d;
+      const data = response.d || [];
 
       setDataSource({
         master_data: data.map((x) => {
-          const hash = btoa(`${name}:${x.id}`);
-
+          const hash = btoa(
+            `${db.dbname.toLowerCase().includes("mitra") ? "mitra" : "boss"}:${
+              x.id
+            }`
+          );
           const dueDate = moment(x.dueDate, "DD/MM/YYYY");
           const today = moment();
           let colorWarning = "black";
@@ -160,17 +183,21 @@ const SalesInvoiceTable = () => {
 
           return {
             ...x,
-            key: x.id, // Add a unique key for the row selection
+            key: x.id,
             invoiceLink: `https://pay.mitranpack.com/?q=${hash}`,
-            customerName: x.customer.name,
+            customerName: x.customer && x.customer.name ? x.customer.name : "-",
             colorWarning,
-            whatsapp: dataCustomer.get(x.customer.name) || "",
+            whatsapp:
+              dataCustomerMap.get(
+                x.customer && x.customer.id ? x.customer.id : null
+              ) || "",
             hash,
           };
         }),
-        totalData: response.sp.rowCount,
+        totalData:
+          response.sp && response.sp.rowCount ? response.sp.rowCount : 0,
       });
-      setSelectedRows([]); // Clear selection when data changes
+      setSelectedRows([]);
     } catch (error) {
       ErrorMessage(error);
     } finally {
@@ -191,22 +218,72 @@ const SalesInvoiceTable = () => {
     }
   };
 
-  const getDataCustomer = async () => {
-    const tableName = "customer";
+  // --- Customers Fetch ---
+  const getCustomers = async (
+    page = 1,
+    keyword = "",
+    databasesArray,
+    selDB
+  ) => {
+    // <-- Added databasesArray parameter
+    if (loadingCustomers) return;
+
+    if (keyword !== customerSearchKeyword) {
+      setDataCustomers([]);
+      setDataCustomerMap(new Map());
+      setCustomerPage(1);
+      setHasMoreCustomers(true);
+    }
+
+    if (!hasMoreCustomers && keyword === customerSearchKeyword) return;
+
+    setLoadingCustomers(true);
+    const db = databasesArray.find((x) => x.id == selDB); // <-- Use the new parameter
+    if (!db) {
+      setLoadingCustomers(false);
+      return;
+    }
+
+    const { token, host, session } = db;
+    const pageSize = 50;
+    const body = {
+      session,
+      token,
+      api_url: `${host}/accurate/api/customer/list.do?fields=id,name&sp.pageSize=${pageSize}&sp.page=${page}${
+        keyword
+          ? `&filter.keywords.op=CONTAIN&filter.keywords.val=${keyword}`
+          : ""
+      }`,
+    };
+
     try {
-      const response = await get(tableName);
-      const customerMap = new Map(
-        response.data
-          .filter((x) => x.whatsapp)
-          .map((x) => [x.company, x.whatsapp])
+      const response = await getDataFromAccurate(body);
+      const newCustomers = (response.d || []).map((customer) => ({
+        id: customer.id,
+        name: customer.name,
+        whatsapp: customer.mobilePhone || customer.mobilePhone2 || "",
+      }));
+
+      setDataCustomers((prev) => [...prev, ...newCustomers]);
+      const newCustomerMap = new Map(
+        newCustomers.map((x) => [x.id, x.whatsapp])
       );
-      setDataCustomer(customerMap);
-      getDatabase();
+      setDataCustomerMap((prevMap) => new Map([...prevMap, ...newCustomerMap]));
+
+      if (newCustomers.length < pageSize) {
+        setHasMoreCustomers(false);
+      }
+      setCustomerPage(page + 1);
+      setCustomerSearchKeyword(keyword);
     } catch (error) {
       ErrorMessage(error);
+      setHasMoreCustomers(false);
+    } finally {
+      setLoadingCustomers(false);
     }
   };
 
+  // --- State Change Handlers ---
   const handleTableChange = (newPagination) => {
     setPagination(newPagination);
   };
@@ -214,16 +291,27 @@ const SalesInvoiceTable = () => {
   const handleDBChange = (value) => {
     setSelectDB(value);
     setPagination({ current: 1, pageSize: 50 });
+    setSelectCustomers([]);
+    setDataCustomers([]);
+    setDataCustomerMap(new Map());
+    setCustomerPage(1);
+    setHasMoreCustomers(true);
+    setCustomerSearchKeyword("");
+  };
+
+  const handleCustomerChange = (value) => {
+    setSelectCustomers(value);
+    setPagination({ current: 1, pageSize: 50 });
   };
 
   const handleSelectRows = (selectedRowKeys, selectedRows) => {
     setSelectedRows(selectedRows);
   };
 
+  // --- WhatsApp Logic ---
   const sendMessage = (invoices) => {
     if (invoices.length === 0) return;
 
-    // Group invoices by customer name
     const invoicesByCustomer = invoices.reduce((acc, invoice) => {
       const { customerName } = invoice;
       if (!acc[customerName]) {
@@ -233,11 +321,11 @@ const SalesInvoiceTable = () => {
       return acc;
     }, {});
 
-    // Iterate over each customer's invoices and send a separate message
     for (const customerName in invoicesByCustomer) {
-      if (invoicesByCustomer.hasOwnProperty(customerName)) {
+      if (
+        Object.prototype.hasOwnProperty.call(invoicesByCustomer, customerName)
+      ) {
         const customerInvoices = invoicesByCustomer[customerName];
-
         const invoiceList = customerInvoices
           .map(
             (invoice, index) =>
@@ -247,7 +335,6 @@ const SalesInvoiceTable = () => {
           )
           .join("\n");
 
-        // Generate a single link for all invoices for this customer
         const invoiceLinks =
           "https://pay.mitranpack.com/?q=" +
           customerInvoices.map((invoice) => invoice.hash).join(",");
@@ -262,25 +349,53 @@ const SalesInvoiceTable = () => {
     }
   };
 
+  const generateMultipleWhatsApp = () => {
+    sendMessage(selectedRows);
+  };
+
+  // --- Infinite Scroll & Search ---
+  const handleCustomerPopupScroll = (e) => {
+    const { target } = e;
+    const isAtBottom =
+      target.scrollHeight - target.scrollTop === target.clientHeight;
+    if (isAtBottom && !loadingCustomers && hasMoreCustomers) {
+      getCustomers(customerPage, customerSearchKeyword, databases, selectDB); // <-- Pass databases here
+    }
+  };
+
+  const debouncedCustomerSearch = useRef(
+    debounce((value, dbs, sdb) => {
+      getCustomers(1, value, dbs, sdb);
+    }, 500)
+  ).current;
+
+  const handleCustomerSearch = (value) => {
+    debouncedCustomerSearch(value, databases, selectDB); // <-- Pass databases here
+  };
+
+  // --- useEffect Hooks ---
   useEffect(() => {
-    getDataCustomer();
+    getDatabase();
   }, []);
+
+  useEffect(() => {
+    if (selectDB) {
+      getCustomers(1, "", databases, selectDB);
+    }
+  }, [selectDB, databases]); // <-- Added databases as a dependency
 
   useEffect(() => {
     if (selectDB) {
       getData();
     }
-  }, [selectDB, pagination, selectStatus]);
+  }, [selectDB, pagination, selectStatus, selectCustomers, databases]); // <-- Added databases as a dependency
 
+  // --- Render JSX ---
   const rowSelection = {
     selectedRowKeys: selectedRows.map((row) => row.key),
     onChange: (selectedRowKeys, selectedRows) => {
       handleSelectRows(selectedRowKeys, selectedRows);
     },
-  };
-
-  const generateMultipleWhatsApp = () => {
-    sendMessage(selectedRows);
   };
 
   return (
@@ -309,34 +424,71 @@ const SalesInvoiceTable = () => {
             ]}
           />
         </section>
-        <div style={{ margin: 16 }}>
-          <label style={{ marginRight: 8 }}>Pilih Database:</label>
-          <Select
-            allowClear
-            className="database-select"
-            value={selectDB}
-            onChange={handleDBChange}
-          >
-            {databases.map((item) => (
-              <Select.Option value={item.id} key={item.id}>
-                {item.dbname}
+        <div
+          style={{ margin: 16, display: "flex", flexWrap: "wrap", gap: "8px" }}
+        >
+          <div>
+            <label style={{ marginRight: 8 }}>Pilih Database:</label>
+            <Select
+              className="database-select"
+              value={selectDB}
+              onChange={handleDBChange}
+              style={{ width: 300 }}
+            >
+              {databases.map((item) => (
+                <Select.Option value={item.id} key={item.id}>
+                  {item.dbname}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <label style={{ marginRight: 8 }}>Status:</label>
+            <Select
+              className="status-select"
+              value={selectStatus}
+              onChange={setSelectStatus}
+              style={{ width: 150 }}
+            >
+              <Select.Option value="true" key="outstanding">
+                Belum Lunas
               </Select.Option>
-            ))}
-          </Select>
-          <label style={{ marginLeft: 8, marginRight: 8 }}>Filter:</label>
-          <Select
-            allowClear
-            className="database-select"
-            value={selectStatus}
-            onChange={setSelectStatus}
-          >
-            <Select.Option value="true" key={1}>
-              Belum Lunas
-            </Select.Option>
-            <Select.Option value="false" key={5}>
-              Lunas
-            </Select.Option>
-          </Select>
+              <Select.Option value="false" key="paid">
+                Lunas
+              </Select.Option>
+            </Select>
+          </div>
+        </div>
+        <div
+          style={{ margin: 16, display: "flex", flexWrap: "wrap", gap: "8px" }}
+        >
+          <div>
+            <label style={{ marginRight: 8 }}>Filter Customer:</label>
+            <Select
+              mode="multiple"
+              allowClear
+              className="customer-select"
+              placeholder="Pilih Customer"
+              value={selectCustomers}
+              onChange={handleCustomerChange}
+              style={{ width: 600 }}
+              onPopupScroll={handleCustomerPopupScroll}
+              onSearch={handleCustomerSearch}
+              filterOption={false}
+              showSearch
+            >
+              {dataCustomers.map((item) => (
+                <Select.Option value={item.id} key={item.id}>
+                  {item.name}
+                </Select.Option>
+              ))}
+              {loadingCustomers && (
+                <div style={{ textAlign: "center", padding: "10px" }}>
+                  <Spin size="small" />
+                </div>
+              )}
+            </Select>
+          </div>
         </div>
         <div className="kanban__main-wrapper">
           <Table
@@ -355,7 +507,7 @@ const SalesInvoiceTable = () => {
               total: dataSource.totalData,
             }}
             onChange={handleTableChange}
-            rowSelection={rowSelection} // Add row selection
+            rowSelection={rowSelection}
           />
         </div>
       </section>
