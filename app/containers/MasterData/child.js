@@ -25,6 +25,7 @@ const SalesInvoiceTable = () => {
     pageSize: 50,
   });
   const [selectedRows, setSelectedRows] = useState([]);
+  const [sortedInfo, setSortedInfo] = useState({});
 
   // State for infinite scroll and search on customer filter
   const [loadingCustomers, setLoadingCustomers] = useState(false);
@@ -47,6 +48,10 @@ const SalesInvoiceTable = () => {
       dataIndex: "customerName",
       key: "customerName",
       width: 250,
+      sorter: true,
+      sortOrder:
+        sortedInfo.columnKey === "customerName" ? sortedInfo.order : null,
+      showSorterTooltip: false,
     },
     {
       title: "No Invoice",
@@ -65,6 +70,10 @@ const SalesInvoiceTable = () => {
       dataIndex: "transDateView",
       key: "transDateView",
       width: 100,
+      sorter: true,
+      sortOrder:
+        sortedInfo.columnKey === "transDateView" ? sortedInfo.order : null,
+      showSorterTooltip: false,
     },
     {
       title: "Tgl Jatuh Tempo",
@@ -154,10 +163,24 @@ const SalesInvoiceTable = () => {
       queryCustomer = `&customerFilter=[${cust.join("%2C")}]`;
     }
 
+    // Add sorting parameter based on sortedInfo state
+    let querySort = "";
+    if (sortedInfo.order) {
+      const order = sortedInfo.order === "ascend" ? "asc" : "desc";
+      const sortFieldMap = {
+        customerName: "customer.name",
+        transDateView: "transDate",
+      };
+      const sortField = sortFieldMap[sortedInfo.columnKey];
+      if (sortField) {
+        querySort = `&sp.sort=${sortField}|${order}`;
+      }
+    }
+
     const body = {
       session,
       token,
-      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}`,
+      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}`,
     };
 
     try {
@@ -284,8 +307,9 @@ const SalesInvoiceTable = () => {
   };
 
   // --- State Change Handlers ---
-  const handleTableChange = (newPagination) => {
+  const handleTableChange = (newPagination, filters, sorter) => {
     setPagination(newPagination);
+    setSortedInfo(sorter);
   };
 
   const handleDBChange = (value) => {
