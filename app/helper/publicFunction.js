@@ -68,7 +68,7 @@ export function formatCurrency(value, format = null) {
     style = format.style;
     currency = format.currency;
   }
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("id-ID", {
     style,
     currency,
   }).format(value);

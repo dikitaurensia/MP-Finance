@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Table, Button, Space, PageHeader, Select } from "antd";
 import { get, getDataFromAccurate } from "../../service/endPoint";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
-import { PrinterFilled } from "@ant-design/icons";
+import { PrinterFilled, WhatsAppOutlined } from "@ant-design/icons";
 import "../../assets/base.scss";
 import moment from "moment";
 
@@ -87,16 +87,32 @@ const Child = () => {
       key: "action",
       render: (text, record) => (
         <Space size="small">
+          {/* Print Button */}
           <Button
             className="btn-pick-courier"
             shape="round"
             type="primary"
             size="small"
-            color="geekblue"
-            key={1}
+            key="print"
             style={{ cursor: "pointer" }}
             onClick={() => window.open(record.invoiceLink, "_blank")}
             icon={<PrinterFilled />}
+          />
+
+          {/* WhatsApp Button */}
+          <Button
+            className="btn-pick-courier whatsapp-btn"
+            shape="round"
+            size="small"
+            key="whatsapp"
+            style={{
+              cursor: "pointer",
+              backgroundColor: "#25D366", // WhatsApp green
+              borderColor: "#25D366",
+              color: "white",
+            }}
+            onClick={() => sendMessage(record)}
+            icon={<WhatsAppOutlined />}
           />
         </Space>
       ),
@@ -131,27 +147,27 @@ const Child = () => {
       const response = await getDataFromAccurate(body);
       const data = response.d;
 
-
       setDataSource({
         master_data: data.map((x) => {
-          const link = btoa(`${name}:${x.id}`);
+          const hash = btoa(`${name}:${x.id}`);
 
           const dueDate = moment(x.dueDate, "DD/MM/YYYY");
           const today = moment();
           let colorWarning = "black";
 
-          if (dueDate.isBefore(today, 'day')) {
+          if (dueDate.isBefore(today, "day")) {
             colorWarning = "red";
-          } else if (dueDate.diff(today, 'days') <= 2) {
+          } else if (dueDate.diff(today, "days") <= 2) {
             colorWarning = "orange";
           }
 
           return {
             ...x,
-            invoiceLink: `https://pay.mitranpack.com/?q=${link}`,
+            invoiceLink: `https://pay.mitranpack.com/?q=${hash}`,
             customerName: x.customer.name,
             colorWarning,
-            whatsapp: dataCustomer.get(x.customer.name) || ''
+            whatsapp: dataCustomer.get(x.customer.name) || "",
+            hash,
           };
         }),
         totalData: response.sp.rowCount,
@@ -181,7 +197,9 @@ const Child = () => {
     try {
       const response = await get(tableName);
       const customerMap = new Map(
-        response.data.filter((x) => x.whatsapp).map((x) => [x.company, x.whatsapp]),
+        response.data
+          .filter((x) => x.whatsapp)
+          .map((x) => [x.company, x.whatsapp])
       );
       setDataCustomer(customerMap);
       getDatabase();
@@ -197,6 +215,19 @@ const Child = () => {
   const handleDBChange = (value) => {
     setSelectDB(value);
     setPagination({ current: 1, pageSize: 50 });
+  };
+
+  const sendMessage = (invoice) => {
+    const message = `Dengan hormat bagian keuangan ${
+      invoice.customerName
+    },\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah Faktur penjualan ${
+      invoice.number
+    } dengan total nilai IDR ${formatCurrency(
+      invoice.totalAmount
+    )}\n\nTerima Kasih,\n\n\nCV. Boss Lakban Indonesia\n\nTerlampir link dokumen faktur dibawah ini:\n${
+      invoice.invoiceLink
+    }`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   // The useEffect hook acts as componentDidMount
@@ -251,7 +282,6 @@ const Child = () => {
               Lunas
             </Select.Option>
           </Select>
-
         </div>
         <div className="kanban__main-wrapper">
           <Table
