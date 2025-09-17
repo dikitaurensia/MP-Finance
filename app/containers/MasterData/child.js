@@ -6,7 +6,7 @@ import { PrinterFilled, WhatsAppOutlined } from "@ant-design/icons";
 import "../../assets/base.scss";
 import moment from "moment";
 
-const Child = () => {
+const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(0);
   const [selectStatus, setSelectStatus] = useState("true");
   const [dataCustomer, setDataCustomer] = useState(new Map());
@@ -21,8 +21,8 @@ const Child = () => {
     current: 1,
     pageSize: 50,
   });
+  const [selectedRows, setSelectedRows] = useState([]);
 
-  // Table columns are now a constant outside the component
   const columns = [
     {
       title: "No",
@@ -87,7 +87,6 @@ const Child = () => {
       key: "action",
       render: (text, record) => (
         <Space size="small">
-          {/* Print Button */}
           <Button
             className="btn-pick-courier"
             shape="round"
@@ -98,8 +97,6 @@ const Child = () => {
             onClick={() => window.open(record.invoiceLink, "_blank")}
             icon={<PrinterFilled />}
           />
-
-          {/* WhatsApp Button */}
           <Button
             className="btn-pick-courier whatsapp-btn"
             shape="round"
@@ -107,11 +104,11 @@ const Child = () => {
             key="whatsapp"
             style={{
               cursor: "pointer",
-              backgroundColor: "#25D366", // WhatsApp green
+              backgroundColor: "#25D366",
               borderColor: "#25D366",
               color: "white",
             }}
-            onClick={() => sendMessage(record)}
+            onClick={() => sendMessage([record])}
             icon={<WhatsAppOutlined />}
           />
         </Space>
@@ -163,6 +160,7 @@ const Child = () => {
 
           return {
             ...x,
+            key: x.id, // Add a unique key for the row selection
             invoiceLink: `https://pay.mitranpack.com/?q=${hash}`,
             customerName: x.customer.name,
             colorWarning,
@@ -172,6 +170,7 @@ const Child = () => {
         }),
         totalData: response.sp.rowCount,
       });
+      setSelectedRows([]); // Clear selection when data changes
     } catch (error) {
       ErrorMessage(error);
     } finally {
@@ -217,31 +216,72 @@ const Child = () => {
     setPagination({ current: 1, pageSize: 50 });
   };
 
-  const sendMessage = (invoice) => {
-    const message = `Dengan hormat bagian keuangan ${
-      invoice.customerName
-    },\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah Faktur penjualan ${
-      invoice.number
-    } dengan total nilai IDR ${formatCurrency(
-      invoice.totalAmount
-    )}\n\nTerima Kasih,\n\n\nCV. Boss Lakban Indonesia\n\nTerlampir link dokumen faktur dibawah ini:\n${
-      invoice.invoiceLink
-    }`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+  const handleSelectRows = (selectedRowKeys, selectedRows) => {
+    setSelectedRows(selectedRows);
   };
 
-  // The useEffect hook acts as componentDidMount
+  const sendMessage = (invoices) => {
+    if (invoices.length === 0) return;
+
+    // Group invoices by customer name
+    const invoicesByCustomer = invoices.reduce((acc, invoice) => {
+      const { customerName } = invoice;
+      if (!acc[customerName]) {
+        acc[customerName] = [];
+      }
+      acc[customerName].push(invoice);
+      return acc;
+    }, {});
+
+    // Iterate over each customer's invoices and send a separate message
+    for (const customerName in invoicesByCustomer) {
+      if (invoicesByCustomer.hasOwnProperty(customerName)) {
+        const customerInvoices = invoicesByCustomer[customerName];
+
+        const invoiceList = customerInvoices
+          .map(
+            (invoice, index) =>
+              `${index + 1}. Faktur penjualan ${
+                invoice.number
+              } - IDR ${formatCurrency(invoice.totalAmount)}`
+          )
+          .join("\n");
+
+        // Generate a single link for all invoices for this customer
+        const invoiceLinks =
+          "https://pay.mitranpack.com/?q=" +
+          customerInvoices.map((invoice) => invoice.hash).join(",");
+
+        const message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n${invoiceList}\n\nTerlampir link dokumen faktur dibawah ini:\n${invoiceLinks}\n\nTerima Kasih,\nCV. Boss Lakban Indonesia`;
+
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(message)}`,
+          "_blank"
+        );
+      }
+    }
+  };
+
   useEffect(() => {
     getDataCustomer();
-    // getDatabase();
   }, []);
 
-  // This useEffect hook is triggered whenever selectDB or pagination changes
   useEffect(() => {
     if (selectDB) {
       getData();
     }
   }, [selectDB, pagination, selectStatus]);
+
+  const rowSelection = {
+    selectedRowKeys: selectedRows.map((row) => row.key),
+    onChange: (selectedRowKeys, selectedRows) => {
+      handleSelectRows(selectedRowKeys, selectedRows);
+    },
+  };
+
+  const generateMultipleWhatsApp = () => {
+    sendMessage(selectedRows);
+  };
 
   return (
     <React.Fragment>
@@ -251,7 +291,22 @@ const Child = () => {
             className="site-page-header"
             onBack={() => window.history.back()}
             title="Sales Invoice"
-            extra={[]}
+            extra={[
+              <Button
+                key="multi-wa"
+                type="primary"
+                icon={<WhatsAppOutlined />}
+                style={{
+                  backgroundColor: "#25D366",
+                  borderColor: "#25D366",
+                  color: "white",
+                }}
+                disabled={selectedRows.length === 0}
+                onClick={generateMultipleWhatsApp}
+              >
+                Generate WhatsApp ({selectedRows.length})
+              </Button>,
+            ]}
           />
         </section>
         <div style={{ margin: 16 }}>
@@ -300,6 +355,7 @@ const Child = () => {
               total: dataSource.totalData,
             }}
             onChange={handleTableChange}
+            rowSelection={rowSelection} // Add row selection
           />
         </div>
       </section>
@@ -307,4 +363,4 @@ const Child = () => {
   );
 };
 
-export default Child;
+export default SalesInvoiceTable;
