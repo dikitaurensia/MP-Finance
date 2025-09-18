@@ -135,39 +135,6 @@ const SalesInvoiceTable = () => {
         </Button>
       ),
     },
-    // {
-    //   title: "Action",
-    //   width: 100,
-    //   key: "action",
-    //   render: (text, record) => (
-    //     <Space size="small">
-    //       <Button
-    //         className="btn-pick-courier"
-    //         shape="round"
-    //         type="primary"
-    //         size="small"
-    //         key="print"
-    //         style={{ cursor: "pointer" }}
-    //         onClick={() => window.open(record.invoiceLink, "_blank")}
-    //         icon={<PrinterFilled />}
-    //       />
-    //       <Button
-    //         className="btn-pick-courier whatsapp-btn"
-    //         shape="round"
-    //         size="small"
-    //         key="whatsapp"
-    //         style={{
-    //           cursor: "pointer",
-    //           backgroundColor: "#25D366",
-    //           borderColor: "#25D366",
-    //           color: "white",
-    //         }}
-    //         onClick={() => sendMessage([record])}
-    //         icon={<WhatsAppOutlined />}
-    //       />
-    //     </Space>
-    //   ),
-    // },
   ];
 
   const detailColumns = [
