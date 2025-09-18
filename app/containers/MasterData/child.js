@@ -1,18 +1,30 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Table, Button, Space, PageHeader, Select, Spin, Modal } from "antd";
+import {
+  Table,
+  Button,
+  PageHeader,
+  Select,
+  Spin,
+  Modal,
+  DatePicker,
+} from "antd";
 import { get, getDataFromAccurate } from "../../service/endPoint";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
-import { PrinterFilled, WhatsAppOutlined } from "@ant-design/icons";
+import { WhatsAppOutlined } from "@ant-design/icons";
 import "../../assets/base.scss";
 import moment from "moment";
 import { debounce } from "lodash";
+import { FORMAT_DATE_FILTER_ACC } from "../../helper/constanta";
+
+const { RangePicker } = DatePicker;
 
 const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(0);
   const [selectStatus, setSelectStatus] = useState("true");
   const [selectCustomers, setSelectCustomers] = useState([]);
   const [dataCustomers, setDataCustomers] = useState([]);
-  const [dataCustomerMap, setDataCustomerMap] = useState(new Map());
+
+  const [dataWhatsappMap, setdataWhatsappMap] = useState(new Map());
 
   const [databases, setDatabases] = useState([]);
   const [loadingTable, setLoadingTable] = useState(false);
@@ -36,6 +48,14 @@ const SalesInvoiceTable = () => {
   // State for modal recall
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+
+  const [dueDate, setDueDate] = useState([
+    moment()
+      .clone()
+      .startOf("month")
+      .format(FORMAT_DATE_FILTER_ACC),
+    moment().format(FORMAT_DATE_FILTER_ACC),
+  ]);
 
   const handleOpenModal = (record) => {
     setSelectedRecord(record);
@@ -71,7 +91,7 @@ const SalesInvoiceTable = () => {
       title: "No Invoice",
       dataIndex: "number",
       key: "number",
-      width: 150,
+      width: 200,
       render: (value, record) => (
         <Button
           type="link"
@@ -117,19 +137,22 @@ const SalesInvoiceTable = () => {
       width: 150,
     },
     {
+      title: "Phone No.",
+      dataIndex: "whatsapp2",
+      key: "whatsapp2",
+      width: 150,
+    },
+    {
       title: "Recall",
       dataIndex: "recall",
       key: "recall",
-      width: 70,
+      width: 100,
       render: (value, record) => (
         <Button
-          type="link"
+          type="dashed"
           size="small"
-          iconPosition="end"
           onClick={() => handleOpenModal(record)}
-          style={{
-            textAlign: "right",
-          }}
+          style={{ width: 70 }}
         >
           10
         </Button>
@@ -165,11 +188,14 @@ const SalesInvoiceTable = () => {
     if (selectCustomers.length > 0) {
       const cust = selectCustomers.map((x) => {
         return `{"id": ${x}}`;
-        // return `{%22id%22%3A${x}}`;
       });
-      // queryCustomer = `&customerFilter=[${cust.join("%2C")}]`;
       queryCustomer = `&customerFilter=[${encodeURIComponent(cust.join(","))}]`;
     }
+
+    const temp = `{"type": "at-date","operator": null,"date": "${
+      dueDate[0]
+    }","endDate": "${dueDate[1]}"}`;
+    let queryDueDate = `&dueDateFilter=${encodeURIComponent(temp)}`;
 
     // Add sorting parameter based on sortedInfo state
     let querySort = "";
@@ -188,7 +214,7 @@ const SalesInvoiceTable = () => {
     const body = {
       session,
       token,
-      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}`,
+      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}${queryDueDate}`,
     };
 
     try {
@@ -212,16 +238,16 @@ const SalesInvoiceTable = () => {
             colorWarning = "orange";
           }
 
+          const wa = dataWhatsappMap.get(x.customer.name) || {};
+
           return {
             ...x,
             key: x.id,
             invoiceLink: `https://pay.mitranpack.com/?q=${hash}`,
             customerName: x.customer && x.customer.name ? x.customer.name : "-",
             colorWarning,
-            whatsapp:
-              dataCustomerMap.get(
-                x.customer && x.customer.id ? x.customer.id : null
-              ) || "",
+            whatsapp: wa.whatsapp || "",
+            whatsapp2: wa.whatsapp2 || "",
             hash,
           };
         }),
@@ -249,6 +275,23 @@ const SalesInvoiceTable = () => {
     }
   };
 
+  const getDataWA = async () => {
+    const tableName = "customer";
+    try {
+      const response = await get(tableName);
+      if (response.data.length > 0) {
+        const waMap = new Map(
+          response.data
+            .filter((x) => x.whatsapp2 || x.whatsapp)
+            .map((x) => [x.company, x])
+        );
+        setdataWhatsappMap(waMap);
+      }
+    } catch (error) {
+      ErrorMessage(error);
+    }
+  };
+
   // --- Customers Fetch ---
   const getCustomers = async (
     page = 1,
@@ -261,7 +304,7 @@ const SalesInvoiceTable = () => {
 
     if (keyword !== customerSearchKeyword) {
       setDataCustomers([]);
-      setDataCustomerMap(new Map());
+      // setDataCustomerMap(new Map());
       setCustomerPage(1);
       setHasMoreCustomers(true);
     }
@@ -298,10 +341,10 @@ const SalesInvoiceTable = () => {
       }));
 
       setDataCustomers((prev) => [...prev, ...newCustomers]);
-      const newCustomerMap = new Map(
-        newCustomers.map((x) => [x.id, x.whatsapp])
-      );
-      setDataCustomerMap((prevMap) => new Map([...prevMap, ...newCustomerMap]));
+      // const newCustomerMap = new Map(
+      //   newCustomers.map((x) => [x.id, x.whatsapp])
+      // );
+      // setDataCustomerMap((prevMap) => new Map([...prevMap, ...newCustomerMap]));
 
       if (newCustomers.length < pageSize) {
         setHasMoreCustomers(false);
@@ -327,7 +370,7 @@ const SalesInvoiceTable = () => {
     setPagination({ current: 1, pageSize: 50 });
     setSelectCustomers([]);
     setDataCustomers([]);
-    setDataCustomerMap(new Map());
+    // setDataCustomerMap(new Map());
     setCustomerPage(1);
     setHasMoreCustomers(true);
     setCustomerSearchKeyword("");
@@ -410,6 +453,7 @@ const SalesInvoiceTable = () => {
   // --- useEffect Hooks ---
   useEffect(() => {
     getDatabase();
+    getDataWA();
   }, []);
 
   useEffect(() => {
@@ -422,7 +466,15 @@ const SalesInvoiceTable = () => {
     if (selectDB) {
       getData();
     }
-  }, [selectDB, pagination, selectStatus, selectCustomers, databases]); // <-- Added databases as a dependency
+  }, [
+    selectDB,
+    pagination,
+    selectStatus,
+    selectCustomers,
+    databases,
+    dataWhatsappMap,
+    dueDate,
+  ]); // <-- Added databases as a dependency
 
   // --- Render JSX ---
   const rowSelection = {
@@ -492,12 +544,23 @@ const SalesInvoiceTable = () => {
               </Select.Option>
             </Select>
           </div>
+          <div>
+            <label style={{ marginRight: 8 }}>Jatuh Tempo:</label>
+            <RangePicker
+              defaultValue={[
+                moment(dueDate[0], FORMAT_DATE_FILTER_ACC),
+                moment(dueDate[1], FORMAT_DATE_FILTER_ACC),
+              ]}
+              format={FORMAT_DATE_FILTER_ACC}
+              onChange={(value, dateString) => setDueDate(dateString)}
+            />
+          </div>
         </div>
         <div
           style={{ margin: 16, display: "flex", flexWrap: "wrap", gap: "8px" }}
         >
           <div>
-            <label style={{ marginRight: 8 }}>Filter Customer:</label>
+            <label style={{ marginRight: 8 }}>Customer:</label>
             <Select
               mode="multiple"
               allowClear
