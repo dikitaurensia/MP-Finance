@@ -7,6 +7,7 @@ import {
   Spin,
   Modal,
   DatePicker,
+  Card,
 } from "antd";
 import { get, getDataFromAccurate } from "../../service/endPoint";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
@@ -510,83 +511,97 @@ const SalesInvoiceTable = () => {
             ]}
           />
         </section>
-        <div
-          style={{ margin: 16, display: "flex", flexWrap: "wrap", gap: "8px" }}
-        >
-          <div>
-            <label style={{ marginRight: 8 }}>Pilih Database:</label>
-            <Select
-              className="database-select"
-              value={selectDB}
-              onChange={handleDBChange}
-              style={{ width: 300 }}
-            >
-              {databases.map((item) => (
-                <Select.Option value={item.id} key={item.id}>
-                  {item.dbname}
+
+        {/* Filters enclosed in a Card */}
+        <Card style={{ margin: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "16px",
+              alignItems: "flex-end",
+            }}
+          >
+            {/* Database Select */}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <label style={{ marginBottom: 4 }}>Database:</label>
+              <Select
+                className="database-select"
+                value={selectDB}
+                onChange={handleDBChange}
+                style={{ width: 250 }}
+              >
+                {databases.map((item) => (
+                  <Select.Option value={item.id} key={item.id}>
+                    {item.dbname}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Status Select */}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <label style={{ marginBottom: 4 }}>Status:</label>
+              <Select
+                className="status-select"
+                value={selectStatus}
+                onChange={setSelectStatus}
+                style={{ width: 250 }}
+              >
+                <Select.Option value="true" key="outstanding">
+                  Belum Lunas
                 </Select.Option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label style={{ marginRight: 8 }}>Status:</label>
-            <Select
-              className="status-select"
-              value={selectStatus}
-              onChange={setSelectStatus}
-              style={{ width: 150 }}
-            >
-              <Select.Option value="true" key="outstanding">
-                Belum Lunas
-              </Select.Option>
-              <Select.Option value="false" key="paid">
-                Lunas
-              </Select.Option>
-            </Select>
-          </div>
-          <div>
-            <label style={{ marginRight: 8 }}>Jatuh Tempo:</label>
-            <RangePicker
-              defaultValue={[
-                moment(dueDate[0], FORMAT_DATE_FILTER_ACC),
-                moment(dueDate[1], FORMAT_DATE_FILTER_ACC),
-              ]}
-              format={FORMAT_DATE_FILTER_ACC}
-              onChange={(value, dateString) => setDueDate(dateString)}
-            />
-          </div>
-        </div>
-        <div
-          style={{ margin: 16, display: "flex", flexWrap: "wrap", gap: "8px" }}
-        >
-          <div>
-            <label style={{ marginRight: 8 }}>Customer:</label>
-            <Select
-              mode="multiple"
-              allowClear
-              className="customer-select"
-              placeholder="Pilih Customer"
-              value={selectCustomers}
-              onChange={handleCustomerChange}
-              style={{ width: 600 }}
-              onPopupScroll={handleCustomerPopupScroll}
-              onSearch={handleCustomerSearch}
-              filterOption={false}
-              showSearch
-            >
-              {dataCustomers.map((item) => (
-                <Select.Option value={item.id} key={item.id}>
-                  {item.name}
+                <Select.Option value="false" key="paid">
+                  Lunas
                 </Select.Option>
-              ))}
-              {loadingCustomers && (
-                <div style={{ textAlign: "center", padding: "10px" }}>
-                  <Spin size="small" />
-                </div>
-              )}
-            </Select>
+              </Select>
+            </div>
+
+            {/* Due Date Range Picker */}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <label style={{ marginBottom: 4 }}>Jatuh Tempo:</label>
+              <RangePicker
+                defaultValue={[
+                  moment(dueDate[0], FORMAT_DATE_FILTER_ACC),
+                  moment(dueDate[1], FORMAT_DATE_FILTER_ACC),
+                ]}
+                format={FORMAT_DATE_FILTER_ACC}
+                onChange={(value, dateString) => setDueDate(dateString)}
+                style={{ width: 250 }}
+              />
+            </div>
+
+            {/* Customer Select */}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <label style={{ marginBottom: 4 }}>Customer:</label>
+              <Select
+                mode="multiple"
+                allowClear
+                className="customer-select"
+                placeholder="Pilih Customer"
+                value={selectCustomers}
+                onChange={handleCustomerChange}
+                style={{ width: 350 }}
+                onPopupScroll={handleCustomerPopupScroll}
+                onSearch={handleCustomerSearch}
+                filterOption={false}
+                showSearch
+              >
+                {dataCustomers.map((item) => (
+                  <Select.Option value={item.id} key={item.id}>
+                    {item.name}
+                  </Select.Option>
+                ))}
+                {loadingCustomers && (
+                  <div style={{ textAlign: "center", padding: "10px" }}>
+                    <Spin size="small" />
+                  </div>
+                )}
+              </Select>
+            </div>
           </div>
-        </div>
+        </Card>
+
         <div className="kanban__main-wrapper">
           <Table
             key="masterdata"
@@ -608,6 +623,8 @@ const SalesInvoiceTable = () => {
           />
         </div>
       </section>
+
+      {/* Modal remains the same */}
       <Modal
         title={`Recall Detail - ${selectedRecord ? selectedRecord.number : ""}`}
         open={isModalOpen}
