@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Table, Button, Space, PageHeader, Select, Spin } from "antd";
+import { Table, Button, Space, PageHeader, Select, Spin, Modal } from "antd";
 import { get, getDataFromAccurate } from "../../service/endPoint";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
 import { PrinterFilled, WhatsAppOutlined } from "@ant-design/icons";
@@ -33,6 +33,20 @@ const SalesInvoiceTable = () => {
   const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
   const [customerSearchKeyword, setCustomerSearchKeyword] = useState("");
 
+  // State for modal recall
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+
+  const handleOpenModal = (record) => {
+    setSelectedRecord(record);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedRecord(null);
+  };
+
   const columns = [
     {
       title: "No",
@@ -47,7 +61,7 @@ const SalesInvoiceTable = () => {
       title: "Nama Customer",
       dataIndex: "customerName",
       key: "customerName",
-      width: 250,
+      width: 350,
       sorter: true,
       sortOrder:
         sortedInfo.columnKey === "customerName" ? sortedInfo.order : null,
@@ -58,18 +72,21 @@ const SalesInvoiceTable = () => {
       dataIndex: "number",
       key: "number",
       width: 150,
-    },
-    {
-      title: "No SJ",
-      dataIndex: "deliveryPackingNumber",
-      key: "deliveryPackingNumber",
-      width: 150,
+      render: (value, record) => (
+        <Button
+          type="link"
+          size="small"
+          onClick={() => window.open(record.invoiceLink, "_blank")}
+        >
+          {value}
+        </Button>
+      ),
     },
     {
       title: "Tgl faktur",
       dataIndex: "transDateView",
       key: "transDateView",
-      width: 100,
+      width: 150,
       sorter: true,
       sortOrder:
         sortedInfo.columnKey === "transDateView" ? sortedInfo.order : null,
@@ -79,11 +96,9 @@ const SalesInvoiceTable = () => {
       title: "Tgl Jatuh Tempo",
       dataIndex: "dueDateView",
       key: "dueDateView",
-      width: 100,
+      width: 150,
       render: (value, record) => (
-        <div style={{ textAlign: "right", color: record.colorWarning }}>
-          {value}
-        </div>
+        <div style={{ color: record.colorWarning }}>{value}</div>
       ),
     },
     {
@@ -102,38 +117,63 @@ const SalesInvoiceTable = () => {
       width: 150,
     },
     {
-      title: "Action",
-      width: 100,
-      key: "action",
-      render: (text, record) => (
-        <Space size="small">
-          <Button
-            className="btn-pick-courier"
-            shape="round"
-            type="primary"
-            size="small"
-            key="print"
-            style={{ cursor: "pointer" }}
-            onClick={() => window.open(record.invoiceLink, "_blank")}
-            icon={<PrinterFilled />}
-          />
-          <Button
-            className="btn-pick-courier whatsapp-btn"
-            shape="round"
-            size="small"
-            key="whatsapp"
-            style={{
-              cursor: "pointer",
-              backgroundColor: "#25D366",
-              borderColor: "#25D366",
-              color: "white",
-            }}
-            onClick={() => sendMessage([record])}
-            icon={<WhatsAppOutlined />}
-          />
-        </Space>
+      title: "Recall",
+      dataIndex: "recall",
+      key: "recall",
+      width: 70,
+      render: (value, record) => (
+        <Button
+          type="link"
+          size="small"
+          iconPosition="end"
+          onClick={() => handleOpenModal(record)}
+          style={{
+            textAlign: "right",
+          }}
+        >
+          10
+        </Button>
       ),
     },
+    // {
+    //   title: "Action",
+    //   width: 100,
+    //   key: "action",
+    //   render: (text, record) => (
+    //     <Space size="small">
+    //       <Button
+    //         className="btn-pick-courier"
+    //         shape="round"
+    //         type="primary"
+    //         size="small"
+    //         key="print"
+    //         style={{ cursor: "pointer" }}
+    //         onClick={() => window.open(record.invoiceLink, "_blank")}
+    //         icon={<PrinterFilled />}
+    //       />
+    //       <Button
+    //         className="btn-pick-courier whatsapp-btn"
+    //         shape="round"
+    //         size="small"
+    //         key="whatsapp"
+    //         style={{
+    //           cursor: "pointer",
+    //           backgroundColor: "#25D366",
+    //           borderColor: "#25D366",
+    //           color: "white",
+    //         }}
+    //         onClick={() => sendMessage([record])}
+    //         icon={<WhatsAppOutlined />}
+    //       />
+    //     </Space>
+    //   ),
+    // },
+  ];
+
+  const detailColumns = [
+    { title: "Tanggal", dataIndex: "date", key: "date" },
+    { title: "No. Whatsapp", dataIndex: "whatsapp", key: "whatsapp" },
+    { title: "Status", dataIndex: "status", key: "status" },
   ];
 
   // --- Data Fetching Logic ---
@@ -157,10 +197,11 @@ const SalesInvoiceTable = () => {
     let queryCustomer = "";
     if (selectCustomers.length > 0) {
       const cust = selectCustomers.map((x) => {
-        // return `{"id": ${x}}`;
-        return `{%22id%22%3A${x}}`;
+        return `{"id": ${x}}`;
+        // return `{%22id%22%3A${x}}`;
       });
-      queryCustomer = `&customerFilter=[${cust.join("%2C")}]`;
+      // queryCustomer = `&customerFilter=[${cust.join("%2C")}]`;
+      queryCustomer = `&customerFilter=[${encodeURIComponent(cust.join(","))}]`;
     }
 
     // Add sorting parameter based on sortedInfo state
@@ -274,7 +315,9 @@ const SalesInvoiceTable = () => {
       token,
       api_url: `${host}/accurate/api/customer/list.do?fields=id,name&sp.pageSize=${pageSize}&sp.page=${page}${
         keyword
-          ? `&filter.keywords.op=CONTAIN&filter.keywords.val=${keyword}`
+          ? `&filter.keywords.op=CONTAIN&filter.keywords.val=${encodeURIComponent(
+              keyword
+            )}`
           : ""
       }`,
     };
@@ -535,6 +578,23 @@ const SalesInvoiceTable = () => {
           />
         </div>
       </section>
+      <Modal
+        title={`Recall Detail - ${selectedRecord ? selectedRecord.number : ""}`}
+        open={isModalOpen}
+        onCancel={handleCloseModal}
+        footer={null}
+        width={600}
+      >
+        {selectedRecord && (
+          <Table
+            columns={detailColumns}
+            dataSource={selectedRecord.details || []}
+            rowKey="id"
+            pagination={false}
+            size="small"
+          />
+        )}
+      </Modal>
     </React.Fragment>
   );
 };
