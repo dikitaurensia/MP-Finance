@@ -12,6 +12,7 @@ export const MODE_LOGIN = "modeLogin";
 export const NAME_LOGIN = "nameLogin";
 export const SELECT = "SELECT";
 export const FORMAT_DATE = "YYYY-MM-DD";
+export const FORMAT_DATE_FULL = "YYYY-MM-DD HH:mm:ss";
 export const FORMAT_DATE_FILTER_ACC = "DD/MM/YYYY";
 export const ADD_TASK = "ADD_TASK";
 export const WHO_OPEN = "WHO_OPEN";

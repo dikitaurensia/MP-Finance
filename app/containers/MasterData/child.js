@@ -8,14 +8,29 @@ import {
   Modal,
   DatePicker,
   Card,
+  Popover,
 } from "antd";
-import { get, getDataFromAccurate } from "../../service/endPoint";
-import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
+import {
+  get,
+  create,
+  getDataFromAccurate,
+  getDataCallHistories,
+} from "../../service/endPoint";
+import {
+  ErrorMessage,
+  formatCurrency,
+  SuccessMessage,
+} from "../../helper/publicFunction";
 import { WhatsAppOutlined } from "@ant-design/icons";
 import "../../assets/base.scss";
-import moment from "moment";
+// import moment from "moment";
+import moment from "moment-timezone";
+
 import { debounce } from "lodash";
-import { FORMAT_DATE_FILTER_ACC } from "../../helper/constanta";
+import {
+  FORMAT_DATE_FULL,
+  FORMAT_DATE_FILTER_ACC,
+} from "../../helper/constanta";
 
 const { RangePicker } = DatePicker;
 
@@ -57,6 +72,9 @@ const SalesInvoiceTable = () => {
       .format(FORMAT_DATE_FILTER_ACC),
     moment().format(FORMAT_DATE_FILTER_ACC),
   ]);
+
+  const [callHistoriesMap, setCallHistoriesMap] = useState(new Map());
+  const [listInvoices, setListInvoices] = useState([]);
 
   const handleOpenModal = (record) => {
     setSelectedRecord(record);
@@ -155,16 +173,52 @@ const SalesInvoiceTable = () => {
           onClick={() => handleOpenModal(record)}
           style={{ width: 70 }}
         >
-          10
+          {record.totalCall || 0}
         </Button>
       ),
     },
   ];
 
   const detailColumns = [
-    { title: "Tanggal", dataIndex: "date", key: "date" },
-    { title: "No. Whatsapp", dataIndex: "whatsapp", key: "whatsapp" },
-    { title: "Status", dataIndex: "status", key: "status" },
+    {
+      title: "No",
+      dataIndex: "no",
+      key: "no",
+      width: 50,
+      render: (value, item, index) => {
+        return index + 1;
+      },
+    },
+    {
+      title: "Tanggal",
+      width: 120,
+      dataIndex: "created_at",
+      key: "created_at",
+    },
+    { title: "Dikirim ke", width: 120, dataIndex: "phone_no", key: "phone_no" },
+    {
+      title: "Pesan",
+      width: 250, // Make the column narrower
+      dataIndex: "message",
+      key: "message",
+      render: (text) => {
+        const previewText =
+          text.length > 50 ? `${text.substring(0, 50)}...` : text;
+
+        const content = (
+          <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>{text}</div>
+        );
+
+        return (
+          <Popover content={content} title="Full Message" trigger="click">
+            <span style={{ fontSize: "12px", cursor: "pointer" }}>
+              {previewText}
+            </span>
+          </Popover>
+        );
+      },
+    },
+    { title: "Status", width: 120, dataIndex: "status", key: "status" },
   ];
 
   // --- Data Fetching Logic ---
@@ -222,6 +276,9 @@ const SalesInvoiceTable = () => {
       const response = await getDataFromAccurate(body);
       const data = response.d || [];
 
+      const invoices = data.map((x) => x.number);
+      // setListInvoices(invoices);
+
       setDataSource({
         master_data: data.map((x) => {
           const hash = btoa(
@@ -241,6 +298,8 @@ const SalesInvoiceTable = () => {
 
           const wa = dataWhatsappMap.get(x.customer.name) || {};
 
+          const callHistory = callHistoriesMap.get(x.number) || {};
+
           return {
             ...x,
             key: x.id,
@@ -250,12 +309,24 @@ const SalesInvoiceTable = () => {
             whatsapp: wa.whatsapp || "",
             whatsapp2: wa.whatsapp2 || "",
             hash,
+            totalCall: callHistory.total,
+            calls: callHistory.data,
           };
         }),
         totalData:
           response.sp && response.sp.rowCount ? response.sp.rowCount : 0,
       });
       setSelectedRows([]);
+
+      setListInvoices((currentInvoices) => {
+        if (
+          JSON.stringify(currentInvoices.sort()) !==
+          JSON.stringify(invoices.sort())
+        ) {
+          return invoices;
+        }
+        return currentInvoices;
+      });
     } catch (error) {
       ErrorMessage(error);
     } finally {
@@ -293,6 +364,37 @@ const SalesInvoiceTable = () => {
     }
   };
 
+  const getCallHistories = async (ids) => {
+    try {
+      if (!ids.length) {
+        // setCallHistoriesMap(new Map()); // clear if no data
+        return;
+      }
+      const response = await getDataCallHistories(
+        "call_history",
+        ids.join(",")
+      );
+
+      if (response.data.length > 0) {
+        const callHist = response.data.reduce((map, x) => {
+          if (!map.has(x.invoice)) {
+            map.set(x.invoice, { data: [], total: 0 });
+          }
+          const entry = map.get(x.invoice);
+          entry.data.push(x);
+          entry.total += 1;
+          return map;
+        }, new Map());
+
+        setCallHistoriesMap(callHist);
+      } else {
+        // setCallHistoriesMap(new Map()); // clear if no data
+      }
+    } catch (error) {
+      ErrorMessage(error);
+    }
+  };
+
   // --- Customers Fetch ---
   const getCustomers = async (
     page = 1,
@@ -305,7 +407,6 @@ const SalesInvoiceTable = () => {
 
     if (keyword !== customerSearchKeyword) {
       setDataCustomers([]);
-      // setDataCustomerMap(new Map());
       setCustomerPage(1);
       setHasMoreCustomers(true);
     }
@@ -342,10 +443,6 @@ const SalesInvoiceTable = () => {
       }));
 
       setDataCustomers((prev) => [...prev, ...newCustomers]);
-      // const newCustomerMap = new Map(
-      //   newCustomers.map((x) => [x.id, x.whatsapp])
-      // );
-      // setDataCustomerMap((prevMap) => new Map([...prevMap, ...newCustomerMap]));
 
       if (newCustomers.length < pageSize) {
         setHasMoreCustomers(false);
@@ -371,7 +468,6 @@ const SalesInvoiceTable = () => {
     setPagination({ current: 1, pageSize: 50 });
     setSelectCustomers([]);
     setDataCustomers([]);
-    // setDataCustomerMap(new Map());
     setCustomerPage(1);
     setHasMoreCustomers(true);
     setCustomerSearchKeyword("");
@@ -387,7 +483,7 @@ const SalesInvoiceTable = () => {
   };
 
   // --- WhatsApp Logic ---
-  const sendMessage = (invoices) => {
+  const sendMessage = async (invoices) => {
     if (invoices.length === 0) return;
 
     const invoicesByCustomer = invoices.reduce((acc, invoice) => {
@@ -417,14 +513,35 @@ const SalesInvoiceTable = () => {
           "https://pay.mitranpack.com/?q=" +
           customerInvoices.map((invoice) => invoice.hash).join(",");
 
-        const message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n${invoiceList}\n\nTerlampir link dokumen faktur dibawah ini:\n${invoiceLinks}\n\nTerima Kasih,\nCV. Boss Lakban Indonesia`;
+        const message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n${invoiceList}\n\nTerlampir link dokumen faktur dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\nCV. Boss Lakban Indonesia`;
 
-        window.open(
-          `https://wa.me/?text=${encodeURIComponent(message)}`,
-          "_blank"
-        );
+        // const now = moment()
+        //   .utcOffset(7)
+        //   .format(FORMAT_DATE_FULL);
+
+        const now = moment()
+          .tz("Asia/Jakarta")
+          .format(FORMAT_DATE_FULL);
+
+        const invoices = customerInvoices.map((x) => x.number);
+        const phoneNo = customerInvoices[0].whatsapp2;
+
+        await create("call_history", {
+          invoices,
+          created_at: now,
+          phone_no: "6285659392396",
+          message,
+        });
+        SuccessMessage("send WA ke " + customerName);
+
+        // window.open(
+        //   `https://wa.me/?text=${encodeURIComponent(message)}`,
+        //   "_blank"
+        // );
       }
     }
+
+    getCallHistories(listInvoices);
   };
 
   const generateMultipleWhatsApp = () => {
@@ -464,6 +581,12 @@ const SalesInvoiceTable = () => {
   }, [selectDB, databases]); // <-- Added databases as a dependency
 
   useEffect(() => {
+    if (listInvoices) {
+      getCallHistories(listInvoices);
+    }
+  }, [listInvoices]);
+
+  useEffect(() => {
     if (selectDB) {
       getData();
     }
@@ -475,6 +598,7 @@ const SalesInvoiceTable = () => {
     databases,
     dataWhatsappMap,
     dueDate,
+    callHistoriesMap,
   ]); // <-- Added databases as a dependency
 
   // --- Render JSX ---
@@ -483,6 +607,9 @@ const SalesInvoiceTable = () => {
     onChange: (selectedRowKeys, selectedRows) => {
       handleSelectRows(selectedRowKeys, selectedRows);
     },
+    getCheckboxProps: (record) => ({
+      disabled: !record.whatsapp2,
+    }),
   };
 
   return (
@@ -513,96 +640,96 @@ const SalesInvoiceTable = () => {
         </section>
 
         {/* Filters enclosed in a Card */}
-        <Card style={{ margin: 16 }}>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "16px",
-              alignItems: "flex-end",
-            }}
-          >
-            {/* Database Select */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <label style={{ marginBottom: 4 }}>Database:</label>
-              <Select
-                className="database-select"
-                value={selectDB}
-                onChange={handleDBChange}
-                style={{ width: 250 }}
-              >
-                {databases.map((item) => (
-                  <Select.Option value={item.id} key={item.id}>
-                    {item.dbname}
-                  </Select.Option>
-                ))}
-              </Select>
-            </div>
-
-            {/* Status Select */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <label style={{ marginBottom: 4 }}>Status:</label>
-              <Select
-                className="status-select"
-                value={selectStatus}
-                onChange={setSelectStatus}
-                style={{ width: 250 }}
-              >
-                <Select.Option value="true" key="outstanding">
-                  Belum Lunas
-                </Select.Option>
-                <Select.Option value="false" key="paid">
-                  Lunas
-                </Select.Option>
-              </Select>
-            </div>
-
-            {/* Due Date Range Picker */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <label style={{ marginBottom: 4 }}>Jatuh Tempo:</label>
-              <RangePicker
-                defaultValue={[
-                  moment(dueDate[0], FORMAT_DATE_FILTER_ACC),
-                  moment(dueDate[1], FORMAT_DATE_FILTER_ACC),
-                ]}
-                format={FORMAT_DATE_FILTER_ACC}
-                onChange={(value, dateString) => setDueDate(dateString)}
-                style={{ width: 250 }}
-              />
-            </div>
-
-            {/* Customer Select */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <label style={{ marginBottom: 4 }}>Customer:</label>
-              <Select
-                mode="multiple"
-                allowClear
-                className="customer-select"
-                placeholder="Pilih Customer"
-                value={selectCustomers}
-                onChange={handleCustomerChange}
-                style={{ width: 350 }}
-                onPopupScroll={handleCustomerPopupScroll}
-                onSearch={handleCustomerSearch}
-                filterOption={false}
-                showSearch
-              >
-                {dataCustomers.map((item) => (
-                  <Select.Option value={item.id} key={item.id}>
-                    {item.name}
-                  </Select.Option>
-                ))}
-                {loadingCustomers && (
-                  <div style={{ textAlign: "center", padding: "10px" }}>
-                    <Spin size="small" />
-                  </div>
-                )}
-              </Select>
-            </div>
-          </div>
-        </Card>
 
         <div className="kanban__main-wrapper">
+          <Card style={{ margin: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "16px",
+                alignItems: "flex-end",
+              }}
+            >
+              {/* Database Select */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Database:</label>
+                <Select
+                  className="database-select"
+                  value={selectDB}
+                  onChange={handleDBChange}
+                  style={{ width: 250 }}
+                >
+                  {databases.map((item) => (
+                    <Select.Option value={item.id} key={item.id}>
+                      {item.dbname}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Status Select */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Status:</label>
+                <Select
+                  className="status-select"
+                  value={selectStatus}
+                  onChange={setSelectStatus}
+                  style={{ width: 250 }}
+                >
+                  <Select.Option value="true" key="outstanding">
+                    Belum Lunas
+                  </Select.Option>
+                  <Select.Option value="false" key="paid">
+                    Lunas
+                  </Select.Option>
+                </Select>
+              </div>
+
+              {/* Due Date Range Picker */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Jatuh Tempo:</label>
+                <RangePicker
+                  defaultValue={[
+                    moment(dueDate[0], FORMAT_DATE_FILTER_ACC),
+                    moment(dueDate[1], FORMAT_DATE_FILTER_ACC),
+                  ]}
+                  format={FORMAT_DATE_FILTER_ACC}
+                  onChange={(value, dateString) => setDueDate(dateString)}
+                  style={{ width: 250 }}
+                />
+              </div>
+
+              {/* Customer Select */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Customer:</label>
+                <Select
+                  mode="multiple"
+                  allowClear
+                  className="customer-select"
+                  placeholder="Pilih Customer"
+                  value={selectCustomers}
+                  onChange={handleCustomerChange}
+                  style={{ width: 350 }}
+                  onPopupScroll={handleCustomerPopupScroll}
+                  onSearch={handleCustomerSearch}
+                  filterOption={false}
+                  showSearch
+                >
+                  {dataCustomers.map((item) => (
+                    <Select.Option value={item.id} key={item.id}>
+                      {item.name}
+                    </Select.Option>
+                  ))}
+                  {loadingCustomers && (
+                    <div style={{ textAlign: "center", padding: "10px" }}>
+                      <Spin size="small" />
+                    </div>
+                  )}
+                </Select>
+              </div>
+            </div>
+          </Card>
           <Table
             key="masterdata"
             size="middle"
@@ -630,12 +757,12 @@ const SalesInvoiceTable = () => {
         open={isModalOpen}
         onCancel={handleCloseModal}
         footer={null}
-        width={600}
+        width={1000}
       >
         {selectedRecord && (
           <Table
             columns={detailColumns}
-            dataSource={selectedRecord.details || []}
+            dataSource={selectedRecord.calls || []}
             rowKey="id"
             pagination={false}
             size="small"

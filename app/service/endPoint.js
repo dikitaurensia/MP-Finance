@@ -28,6 +28,13 @@ export function get(form, tgl = null, tgl2 = null) {
   });
 }
 
+export function getDataCallHistories(form, ids) {
+  return request({
+    url: `${API_ROOT}/${form}?ids=${ids}`,
+    method: "GET",
+  });
+}
+
 export function copyDataKaryawan(body) {
   return request({
     url: `${API_ROOT}/copykaryawan`,
