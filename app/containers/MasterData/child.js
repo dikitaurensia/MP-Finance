@@ -166,6 +166,8 @@ const SalesInvoiceTable = () => {
       dataIndex: "recall",
       key: "recall",
       width: 100,
+      // sorter: (a, b) => a.recall - b.recall,
+      // sorter: (a, b) => a.recall.localeCompare(b.recall),
       render: (value, record) => (
         <Button
           type="dashed"
@@ -515,10 +517,6 @@ const SalesInvoiceTable = () => {
 
         const message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n${invoiceList}\n\nTerlampir link dokumen faktur dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\nCV. Boss Lakban Indonesia`;
 
-        // const now = moment()
-        //   .utcOffset(7)
-        //   .format(FORMAT_DATE_FULL);
-
         const now = moment()
           .tz("Asia/Jakarta")
           .format(FORMAT_DATE_FULL);
@@ -529,15 +527,10 @@ const SalesInvoiceTable = () => {
         await create("call_history", {
           invoices,
           created_at: now,
-          phone_no: "6285659392396",
+          phone_no: phoneNo,
           message,
         });
         SuccessMessage("send WA ke " + customerName);
-
-        // window.open(
-        //   `https://wa.me/?text=${encodeURIComponent(message)}`,
-        //   "_blank"
-        // );
       }
     }
 

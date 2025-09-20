@@ -1,0 +1,123 @@
+// src/styles/_login-asymmetric.scss
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #eef2f5; // Light background
+
+  .login-card {
+    display: flex;
+    width: 90%;
+    max-width: 1000px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .login-image-side {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  .login-form-side {
+    flex: 1.2; // This makes the form side wider than the image side
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .login-header {
+    margin-bottom: 40px;
+    .login-logo {
+      height: 80px;
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #333;
+      margin: 0;
+    }
+    p {
+      color: #666;
+      margin-top: 5px;
+    }
+  }
+
+  .form-group {
+    margin-bottom: 25px;
+  }
+
+  .login-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+  }
+
+  .login-button {
+    width: 100%;
+    padding: 14px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    &:hover {
+      background-color: #0056b3;
+    }
+    &:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .spinner {
+      margin-left: 10px;
+    }
+  }
+
+  .error-message {
+    color: #d9534f;
+    font-size: 0.9rem;
+    margin-top: 15px;
+    font-weight: 500;
+    text-align: center;
+  }
+}
+
+// Media Queries for responsiveness
+@media (max-width: 768px) {
+  .login-card {
+    flex-direction: column;
+  }
+  .login-image-side {
+    height: 200px;
+    display: block; // Show image on mobile
+  }
+  .login-form-side {
+    padding: 30px;
+  }
+}

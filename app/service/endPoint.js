@@ -10,7 +10,7 @@ import axios from "axios";
 
 export function login(body) {
   return request({
-    url: `${API_ROOT}/login`,
+    url: `${API_ROOT}/login_finance`,
     method: "POST",
     body: JSON.stringify(body),
   });
