@@ -596,6 +596,7 @@ const SalesInvoiceTable = () => {
           created_at: now,
           phone_no: phoneNo,
           message,
+          customer_name: customerName,
         });
 
         SuccessMessage("send WA ke " + customerName);
