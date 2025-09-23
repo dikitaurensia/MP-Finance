@@ -54,9 +54,7 @@ const Login = () => {
           <div className="login-header">
             <img src={mp} alt="Mitran Pack Logo" className="login-logo" />
             <h2>Hi, Finance 👋</h2>
-            <p>
-              Pastikan akun email kamu telah terdaftar pada bagian administrasi!
-            </p>
+            <p>Pastikan akun kamu telah terdaftar pada bagian administrasi!</p>
           </div>
           <form autoComplete="off" onSubmit={handleSubmit}>
             <div className="form-group">

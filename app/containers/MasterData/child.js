@@ -350,7 +350,7 @@ const SalesInvoiceTable = () => {
   };
 
   const getDataWA = async () => {
-    const tableName = "customer";
+    const tableName = "customer_contact";
     try {
       const response = await get(tableName);
       if (response.data.length > 0) {
@@ -485,8 +485,61 @@ const SalesInvoiceTable = () => {
   };
 
   // --- WhatsApp Logic ---
+  // const sendMessage = async (invoices) => {
+  //   if (invoices.length === 0) return;
+
+  //   const invoicesByCustomer = invoices.reduce((acc, invoice) => {
+  //     const { customerName } = invoice;
+  //     if (!acc[customerName]) {
+  //       acc[customerName] = [];
+  //     }
+  //     acc[customerName].push(invoice);
+  //     return acc;
+  //   }, {});
+
+  //   for (const customerName in invoicesByCustomer) {
+  //     if (
+  //       Object.prototype.hasOwnProperty.call(invoicesByCustomer, customerName)
+  //     ) {
+  //       const customerInvoices = invoicesByCustomer[customerName];
+  //       const invoiceList = customerInvoices
+  //         .map(
+  //           (invoice, index) =>
+  //             `${index + 1}. Faktur penjualan ${
+  //               invoice.number
+  //             } - IDR ${formatCurrency(invoice.totalAmount)}`
+  //         )
+  //         .join("\n");
+
+  //       const invoiceLinks =
+  //         "https://pay.mitranpack.com/?q=" +
+  //         customerInvoices.map((invoice) => invoice.hash).join(",");
+
+  //       const message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n${invoiceList}\n\nTerlampir link dokumen faktur dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\nCV. Boss Lakban Indonesia`;
+
+  //       const now = moment()
+  //         .tz("Asia/Jakarta")
+  //         .format(FORMAT_DATE_FULL);
+
+  //       const invoices = customerInvoices.map((x) => x.number);
+  //       const phoneNo = customerInvoices[0].whatsapp2;
+
+  //       await create("call_history", {
+  //         invoices,
+  //         created_at: now,
+  //         phone_no: phoneNo,
+  //         message,
+  //       });
+  //       SuccessMessage("send WA ke " + customerName);
+  //     }
+  //   }
+
+  //   getCallHistories(listInvoices);
+  // };
   const sendMessage = async (invoices) => {
     if (invoices.length === 0) return;
+
+    const db = databases.find((x) => x.id === selectDB);
 
     const invoicesByCustomer = invoices.reduce((acc, invoice) => {
       const { customerName } = invoice;
@@ -502,34 +555,73 @@ const SalesInvoiceTable = () => {
         Object.prototype.hasOwnProperty.call(invoicesByCustomer, customerName)
       ) {
         const customerInvoices = invoicesByCustomer[customerName];
-        const invoiceList = customerInvoices
-          .map(
-            (invoice, index) =>
-              `${index + 1}. Faktur penjualan ${
-                invoice.number
-              } - IDR ${formatCurrency(invoice.totalAmount)}`
-          )
-          .join("\n");
+
+        const grandTotal = customerInvoices.reduce(
+          (acc, item) => acc + item.totalAmount,
+          0
+        );
+
+        const overdueInvoices = customerInvoices.filter(
+          (invoice) => invoice.colorWarning === "red"
+        );
+        const upcomingInvoices = customerInvoices.filter(
+          (invoice) => invoice.colorWarning !== "red"
+        );
+
+        const phoneNo = customerInvoices[0].whatsapp2;
+        const allInvoices = [...overdueInvoices, ...upcomingInvoices];
+
+        let message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n`;
+
+        // Tambahkan daftar faktur yang sudah jatuh tempo
+        if (overdueInvoices.length > 0) {
+          const overdueInvoiceList = overdueInvoices
+            .map(
+              (invoice, index) =>
+                `*${index + 1}. Faktur penjualan ${
+                  invoice.number
+                } - Rp. ${formatCurrency(invoice.totalAmount)} (JATUH TEMPO)*`
+            )
+            .join("\n");
+          message += `*Faktur Sudah Jatuh Tempo:*\n${overdueInvoiceList}\n\n`;
+        }
+
+        // Tambahkan daftar faktur yang akan jatuh tempo
+        if (upcomingInvoices.length > 0) {
+          const upcomingInvoiceList = upcomingInvoices
+            .map(
+              (invoice, index) =>
+                `${index + 1}. Faktur penjualan ${
+                  invoice.number
+                } - Rp. ${formatCurrency(invoice.totalAmount)}`
+            )
+            .join("\n");
+          message += `*Faktur Akan Jatuh Tempo:*\n${upcomingInvoiceList}\n\n`;
+        }
 
         const invoiceLinks =
           "https://pay.mitranpack.com/?q=" +
-          customerInvoices.map((invoice) => invoice.hash).join(",");
+          allInvoices.map((invoice) => invoice.hash).join(",");
 
-        const message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n${invoiceList}\n\nTerlampir link dokumen faktur dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\nCV. Boss Lakban Indonesia`;
+        message += `*Total: Rp. ${formatCurrency(
+          grandTotal
+        )}*\n\nTerlampir link dokumen faktur dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\n${
+          db.dbname
+        }`;
 
         const now = moment()
           .tz("Asia/Jakarta")
           .format(FORMAT_DATE_FULL);
 
-        const invoices = customerInvoices.map((x) => x.number);
-        const phoneNo = customerInvoices[0].whatsapp2;
+        const invoicesToSend = allInvoices.map((x) => x.number);
 
         await create("call_history", {
-          invoices,
+          invoices: invoicesToSend,
           created_at: now,
           phone_no: phoneNo,
           message,
         });
+
         SuccessMessage("send WA ke " + customerName);
       }
     }
