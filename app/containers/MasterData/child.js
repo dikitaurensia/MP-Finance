@@ -9,6 +9,7 @@ import {
   DatePicker,
   Card,
   Popover,
+  Space,
 } from "antd";
 import {
   get,
@@ -23,13 +24,13 @@ import {
 } from "../../helper/publicFunction";
 import { WhatsAppOutlined } from "@ant-design/icons";
 import "../../assets/base.scss";
-// import moment from "moment";
 import moment from "moment-timezone";
 
 import { debounce } from "lodash";
 import {
   FORMAT_DATE_FULL,
   FORMAT_DATE_FILTER_ACC,
+  FORMAT_DATE_LABEL_FULL,
 } from "../../helper/constanta";
 
 const { RangePicker } = DatePicker;
@@ -73,6 +74,14 @@ const SalesInvoiceTable = () => {
     moment().format(FORMAT_DATE_FILTER_ACC),
   ]);
 
+  const [invoiceDate, setInvoiceDate] = useState([
+    moment()
+      .clone()
+      .startOf("month")
+      .format(FORMAT_DATE_FILTER_ACC),
+    moment().format(FORMAT_DATE_FILTER_ACC),
+  ]);
+
   const [callHistoriesMap, setCallHistoriesMap] = useState(new Map());
   const [listInvoices, setListInvoices] = useState([]);
 
@@ -97,17 +106,41 @@ const SalesInvoiceTable = () => {
       },
     },
     {
-      title: "Nama Customer",
+      title: "Terakhir Recall",
+      dataIndex: "totalCall",
+      key: "totalCall",
+      width: 180,
+      render: (value, record) => (
+        <Space size="small">
+          <p style={{ margin: 0 }}>
+            {record.lastCall
+              ? moment(record.lastCall).format(FORMAT_DATE_LABEL_FULL)
+              : "-"}
+          </p>
+          <Button
+            type="dashed"
+            size="small"
+            onClick={() => handleOpenModal(record)}
+            danger
+          >
+            {value || 0}
+          </Button>
+        </Space>
+      ),
+    },
+
+    {
+      title: "Nama Kustomer",
       dataIndex: "customerName",
       key: "customerName",
-      width: 350,
+      width: 250,
       sorter: true,
       sortOrder:
         sortedInfo.columnKey === "customerName" ? sortedInfo.order : null,
       showSorterTooltip: false,
     },
     {
-      title: "No Invoice",
+      title: "No. Invoice",
       dataIndex: "number",
       key: "number",
       width: 200,
@@ -122,7 +155,7 @@ const SalesInvoiceTable = () => {
       ),
     },
     {
-      title: "Tgl faktur",
+      title: "Tgl. Faktur",
       dataIndex: "transDateView",
       key: "transDateView",
       width: 150,
@@ -132,7 +165,7 @@ const SalesInvoiceTable = () => {
       showSorterTooltip: false,
     },
     {
-      title: "Tgl Jatuh Tempo",
+      title: "Tgl. Jatuh Tempo",
       dataIndex: "dueDateView",
       key: "dueDateView",
       width: 150,
@@ -146,38 +179,14 @@ const SalesInvoiceTable = () => {
       key: "totalAmount",
       width: 150,
       render: (value) => (
-        <div style={{ textAlign: "right" }}>Rp. {formatCurrency(value)}</div>
+        <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
       ),
     },
     {
-      title: "No. Whatsapp",
-      dataIndex: "whatsapp",
-      key: "whatsapp",
-      width: 150,
-    },
-    {
-      title: "Phone No.",
+      title: "No. Handphone",
       dataIndex: "whatsapp2",
       key: "whatsapp2",
       width: 150,
-    },
-    {
-      title: "Recall",
-      dataIndex: "recall",
-      key: "recall",
-      width: 100,
-      // sorter: (a, b) => a.recall - b.recall,
-      // sorter: (a, b) => a.recall.localeCompare(b.recall),
-      render: (value, record) => (
-        <Button
-          type="dashed"
-          size="small"
-          onClick={() => handleOpenModal(record)}
-          style={{ width: 70 }}
-        >
-          {record.totalCall || 0}
-        </Button>
-      ),
     },
   ];
 
@@ -196,6 +205,9 @@ const SalesInvoiceTable = () => {
       width: 120,
       dataIndex: "created_at",
       key: "created_at",
+      render: (value, record) => (
+        <div>{value ? moment(value).format(FORMAT_DATE_LABEL_FULL) : "-"}</div>
+      ),
     },
     { title: "Dikirim ke", width: 120, dataIndex: "phone_no", key: "phone_no" },
     {
@@ -205,7 +217,7 @@ const SalesInvoiceTable = () => {
       key: "message",
       render: (text) => {
         const previewText =
-          text.length > 50 ? `${text.substring(0, 50)}...` : text;
+          text.length > 40 ? `${text.substring(0, 40)}...` : text;
 
         const content = (
           <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>{text}</div>
@@ -213,9 +225,7 @@ const SalesInvoiceTable = () => {
 
         return (
           <Popover content={content} title="Full Message" trigger="click">
-            <span style={{ fontSize: "12px", cursor: "pointer" }}>
-              {previewText}
-            </span>
+            <span style={{ cursor: "pointer" }}>{previewText}</span>
           </Popover>
         );
       },
@@ -249,10 +259,23 @@ const SalesInvoiceTable = () => {
       queryCustomer = `&customerFilter=[${encodeURIComponent(cust.join(","))}]`;
     }
 
-    const temp = `{"type": "at-date","operator": null,"date": "${
+    const tempDueDate = `{"type": "at-date","operator": null,"date": "${
       dueDate[0]
     }","endDate": "${dueDate[1]}"}`;
-    let queryDueDate = `&dueDateFilter=${encodeURIComponent(temp)}`;
+
+    const queryDueDate =
+      dueDate[0] && dueDate[1]
+        ? `&dueDateFilter=${encodeURIComponent(tempDueDate)}`
+        : "";
+
+    const tempInvoiceDate = `{"type": "at-date","operator": null,"amount": null,"date": "${
+      invoiceDate[0]
+    }","endDate": "${invoiceDate[1]}"}`;
+
+    const queryInvoiceDate =
+      invoiceDate[0] && invoiceDate[1]
+        ? `&transDateFilter=${encodeURIComponent(tempInvoiceDate)}`
+        : "";
 
     // Add sorting parameter based on sortedInfo state
     let querySort = "";
@@ -271,7 +294,7 @@ const SalesInvoiceTable = () => {
     const body = {
       session,
       token,
-      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}${queryDueDate}`,
+      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}${queryDueDate}${queryInvoiceDate}`,
     };
 
     try {
@@ -313,6 +336,7 @@ const SalesInvoiceTable = () => {
             hash,
             totalCall: callHistory.total,
             calls: callHistory.data,
+            lastCall: callHistory.lastCall,
           };
         }),
         totalData:
@@ -369,7 +393,6 @@ const SalesInvoiceTable = () => {
   const getCallHistories = async (ids) => {
     try {
       if (!ids.length) {
-        // setCallHistoriesMap(new Map()); // clear if no data
         return;
       }
       const response = await getDataCallHistories(
@@ -385,12 +408,12 @@ const SalesInvoiceTable = () => {
           const entry = map.get(x.invoice);
           entry.data.push(x);
           entry.total += 1;
+          entry.lastCall = x.created_at;
           return map;
         }, new Map());
 
         setCallHistoriesMap(callHist);
       } else {
-        // setCallHistoriesMap(new Map()); // clear if no data
       }
     } catch (error) {
       ErrorMessage(error);
@@ -485,57 +508,6 @@ const SalesInvoiceTable = () => {
   };
 
   // --- WhatsApp Logic ---
-  // const sendMessage = async (invoices) => {
-  //   if (invoices.length === 0) return;
-
-  //   const invoicesByCustomer = invoices.reduce((acc, invoice) => {
-  //     const { customerName } = invoice;
-  //     if (!acc[customerName]) {
-  //       acc[customerName] = [];
-  //     }
-  //     acc[customerName].push(invoice);
-  //     return acc;
-  //   }, {});
-
-  //   for (const customerName in invoicesByCustomer) {
-  //     if (
-  //       Object.prototype.hasOwnProperty.call(invoicesByCustomer, customerName)
-  //     ) {
-  //       const customerInvoices = invoicesByCustomer[customerName];
-  //       const invoiceList = customerInvoices
-  //         .map(
-  //           (invoice, index) =>
-  //             `${index + 1}. Faktur penjualan ${
-  //               invoice.number
-  //             } - IDR ${formatCurrency(invoice.totalAmount)}`
-  //         )
-  //         .join("\n");
-
-  //       const invoiceLinks =
-  //         "https://pay.mitranpack.com/?q=" +
-  //         customerInvoices.map((invoice) => invoice.hash).join(",");
-
-  //       const message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n${invoiceList}\n\nTerlampir link dokumen faktur dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\nCV. Boss Lakban Indonesia`;
-
-  //       const now = moment()
-  //         .tz("Asia/Jakarta")
-  //         .format(FORMAT_DATE_FULL);
-
-  //       const invoices = customerInvoices.map((x) => x.number);
-  //       const phoneNo = customerInvoices[0].whatsapp2;
-
-  //       await create("call_history", {
-  //         invoices,
-  //         created_at: now,
-  //         phone_no: phoneNo,
-  //         message,
-  //       });
-  //       SuccessMessage("send WA ke " + customerName);
-  //     }
-  //   }
-
-  //   getCallHistories(listInvoices);
-  // };
   const sendMessage = async (invoices) => {
     if (invoices.length === 0) return;
 
@@ -561,51 +533,55 @@ const SalesInvoiceTable = () => {
           0
         );
 
-        const overdueInvoices = customerInvoices.filter(
-          (invoice) => invoice.colorWarning === "red"
-        );
-        const upcomingInvoices = customerInvoices.filter(
-          (invoice) => invoice.colorWarning !== "red"
-        );
-
         const phoneNo = customerInvoices[0].whatsapp2;
-        const allInvoices = [...overdueInvoices, ...upcomingInvoices];
+
+        // Grouping
+        const invoicesByDueDate = customerInvoices.reduce((acc, invoice) => {
+          const { dueDateView } = invoice;
+          if (!acc[dueDateView]) {
+            acc[dueDateView] = [];
+          }
+          acc[dueDateView].push(invoice);
+          return acc;
+        }, {});
+
+        // Sorting (terlama → terbaru) dan ubah ke array
+        const sortedInvoicesArray = Object.entries(invoicesByDueDate)
+          .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+          .map(([dueDateView, invoices]) => ({
+            dueDateView,
+            invoices,
+          }));
 
         let message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n`;
 
-        // Tambahkan daftar faktur yang sudah jatuh tempo
-        if (overdueInvoices.length > 0) {
-          const overdueInvoiceList = overdueInvoices
-            .map(
-              (invoice, index) =>
-                `*${index + 1}. Faktur penjualan ${
-                  invoice.number
-                } - Rp. ${formatCurrency(invoice.totalAmount)} (JATUH TEMPO)*`
-            )
-            .join("\n");
-          message += `*Faktur Sudah Jatuh Tempo:*\n${overdueInvoiceList}\n\n`;
-        }
+        // Add the main heading for the list of invoices
+        message += `Faktur yang sudah / akan jatuh tempo\n`;
 
-        // Tambahkan daftar faktur yang akan jatuh tempo
-        if (upcomingInvoices.length > 0) {
-          const upcomingInvoiceList = upcomingInvoices
+        // Iterate through each due date group and add them to the message
+        let counter = 1; // Start a global counter for the numbered list
+        for (const group of sortedInvoicesArray) {
+          message += `•   Tanggal : *${group.dueDateView}*\n`;
+
+          const invoiceList = group.invoices
             .map(
-              (invoice, index) =>
-                `${index + 1}. Faktur penjualan ${
+              (invoice) =>
+                `${counter++}. Faktur penjualan ${
                   invoice.number
                 } - Rp. ${formatCurrency(invoice.totalAmount)}`
             )
             .join("\n");
-          message += `*Faktur Akan Jatuh Tempo:*\n${upcomingInvoiceList}\n\n`;
+
+          message += `${invoiceList}\n\n`;
         }
 
         const invoiceLinks =
           "https://pay.mitranpack.com/?q=" +
-          allInvoices.map((invoice) => invoice.hash).join(",");
+          customerInvoices.map((invoice) => invoice.hash).join(",");
 
-        message += `*Total: Rp. ${formatCurrency(
+        message += `*Total Invoice: Rp. ${formatCurrency(
           grandTotal
-        )}*\n\nTerlampir link dokumen faktur dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\n${
+        )}*\n\nTerlampir link dokumen invoice dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\n${
           db.dbname
         }`;
 
@@ -613,7 +589,7 @@ const SalesInvoiceTable = () => {
           .tz("Asia/Jakarta")
           .format(FORMAT_DATE_FULL);
 
-        const invoicesToSend = allInvoices.map((x) => x.number);
+        const invoicesToSend = customerInvoices.map((x) => x.number);
 
         await create("call_history", {
           invoices: invoicesToSend,
@@ -684,6 +660,7 @@ const SalesInvoiceTable = () => {
     dataWhatsappMap,
     dueDate,
     callHistoriesMap,
+    invoiceDate,
   ]); // <-- Added databases as a dependency
 
   // --- Render JSX ---
@@ -771,6 +748,20 @@ const SalesInvoiceTable = () => {
                 </Select>
               </div>
 
+              {/* Invoice Date Range Picker */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Tanggal Invoice:</label>
+                <RangePicker
+                  defaultValue={[
+                    moment(invoiceDate[0], FORMAT_DATE_FILTER_ACC),
+                    moment(invoiceDate[1], FORMAT_DATE_FILTER_ACC),
+                  ]}
+                  format={FORMAT_DATE_FILTER_ACC}
+                  onChange={(value, dateString) => setInvoiceDate(dateString)}
+                  style={{ width: 250 }}
+                />
+              </div>
+
               {/* Due Date Range Picker */}
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ marginBottom: 4 }}>Jatuh Tempo:</label>
@@ -795,7 +786,7 @@ const SalesInvoiceTable = () => {
                   placeholder="Pilih Customer"
                   value={selectCustomers}
                   onChange={handleCustomerChange}
-                  style={{ width: 350 }}
+                  style={{ minWidth: 250 }}
                   onPopupScroll={handleCustomerPopupScroll}
                   onSearch={handleCustomerSearch}
                   filterOption={false}
