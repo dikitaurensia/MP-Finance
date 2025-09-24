@@ -101,15 +101,17 @@ const SalesInvoiceTable = () => {
       dataIndex: "no",
       key: "no",
       width: 50,
+      fixed: "left",
       render: (value, item, index) => {
         return (pagination.current - 1) * pagination.pageSize + index + 1;
       },
     },
     {
-      title: "Terakhir Recall",
+      title: "Last Recall",
       dataIndex: "totalCall",
       key: "totalCall",
-      width: 180,
+      width: 200,
+      fixed: "left",
       render: (value, record) => (
         <Space size="small">
           <p style={{ margin: 0 }}>
@@ -130,7 +132,7 @@ const SalesInvoiceTable = () => {
     },
 
     {
-      title: "Nama Kustomer",
+      title: "Customer Name",
       dataIndex: "customerName",
       key: "customerName",
       width: 250,
@@ -138,9 +140,10 @@ const SalesInvoiceTable = () => {
       sortOrder:
         sortedInfo.columnKey === "customerName" ? sortedInfo.order : null,
       showSorterTooltip: false,
+      fixed: "left",
     },
     {
-      title: "No. Invoice",
+      title: "Invoice Number",
       dataIndex: "number",
       key: "number",
       width: 200,
@@ -155,7 +158,7 @@ const SalesInvoiceTable = () => {
       ),
     },
     {
-      title: "Tgl. Faktur",
+      title: "Invoice Date",
       dataIndex: "transDateView",
       key: "transDateView",
       width: 150,
@@ -165,7 +168,7 @@ const SalesInvoiceTable = () => {
       showSorterTooltip: false,
     },
     {
-      title: "Tgl. Jatuh Tempo",
+      title: "Due Date",
       dataIndex: "dueDateView",
       key: "dueDateView",
       width: 150,
@@ -174,7 +177,7 @@ const SalesInvoiceTable = () => {
       ),
     },
     {
-      title: "Total Nominal",
+      title: "Total Amount",
       dataIndex: "totalAmount",
       key: "totalAmount",
       width: 150,
@@ -183,7 +186,7 @@ const SalesInvoiceTable = () => {
       ),
     },
     {
-      title: "No. Handphone",
+      title: "Handphone",
       dataIndex: "whatsapp2",
       key: "whatsapp2",
       width: 150,
@@ -201,7 +204,7 @@ const SalesInvoiceTable = () => {
       },
     },
     {
-      title: "Tanggal",
+      title: "Date",
       width: 120,
       dataIndex: "created_at",
       key: "created_at",
@@ -209,10 +212,10 @@ const SalesInvoiceTable = () => {
         <div>{value ? moment(value).format(FORMAT_DATE_LABEL_FULL) : "-"}</div>
       ),
     },
-    { title: "Dikirim ke", width: 120, dataIndex: "phone_no", key: "phone_no" },
+    { title: "Sent to", width: 120, dataIndex: "phone_no", key: "phone_no" },
     {
-      title: "Pesan",
-      width: 250, // Make the column narrower
+      title: "Message",
+      width: 250,
       dataIndex: "message",
       key: "message",
       render: (text) => {
@@ -777,17 +780,17 @@ const SalesInvoiceTable = () => {
                   style={{ width: 250 }}
                 >
                   <Select.Option value="true" key="outstanding">
-                    Belum Lunas
+                    Outstanding
                   </Select.Option>
                   <Select.Option value="false" key="paid">
-                    Lunas
+                    Paid
                   </Select.Option>
                 </Select>
               </div>
 
               {/* Invoice Date Range Picker */}
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ marginBottom: 4 }}>Tanggal Invoice:</label>
+                <label style={{ marginBottom: 4 }}>Invoice Date:</label>
                 <RangePicker
                   defaultValue={[
                     moment(invoiceDate[0], FORMAT_DATE_FILTER_ACC),
@@ -801,7 +804,7 @@ const SalesInvoiceTable = () => {
 
               {/* Due Date Range Picker */}
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ marginBottom: 4 }}>Jatuh Tempo:</label>
+                <label style={{ marginBottom: 4 }}>Due Date:</label>
                 <RangePicker
                   defaultValue={[
                     moment(dueDate[0], FORMAT_DATE_FILTER_ACC),
@@ -815,7 +818,7 @@ const SalesInvoiceTable = () => {
 
               {/* Customer Select */}
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ marginBottom: 4 }}>Customer:</label>
+                <label style={{ marginBottom: 4 }}>Customer Name:</label>
                 <Select
                   mode="multiple"
                   allowClear

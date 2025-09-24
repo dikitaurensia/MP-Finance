@@ -3,7 +3,6 @@ import Child from "./child";
 import "al-styles/main.scss";
 import "al-styles/base.scss";
 import "al-styles/components/nav.scss";
-// import "al-styles/report.scss";
 export default class Courier extends Component {
   render() {
     return <Child />;

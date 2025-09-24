@@ -250,10 +250,10 @@ export function reportJarak(body) {
   });
 }
 
-export function reportChecker(body) {
+export function reportCallHistory(body) {
   let { startDate, endDate } = body;
   return request({
-    url: `${API_ROOT}/report/checker?startdate=${startDate}&enddate=${endDate}`,
+    url: `${API_ROOT}/report/history-call?startdate=${startDate}&enddate=${endDate}`,
     method: "GET",
   });
 }
