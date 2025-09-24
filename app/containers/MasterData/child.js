@@ -673,6 +673,42 @@ const SalesInvoiceTable = () => {
     getCheckboxProps: (record) => ({
       disabled: !record.whatsapp2,
     }),
+    selections: [
+      {
+        key: "call-is-0",
+        text: "Call is 0",
+        onSelect: (changableRowKeys, _) => {
+          // Assuming `dataSource` is the array of all your table's data
+          const newSelectedRowKeys = dataSource.master_data
+            .filter((row) => !row.totalCall && row.whatsapp2) // Ensure whatsapp2 is present
+            .map((row) => row.key);
+
+          // Corrected line: pass the keys and corresponding rows to handleSelectRows
+          const newSelectedRows = dataSource.master_data.filter((row) =>
+            newSelectedRowKeys.includes(row.key)
+          );
+
+          handleSelectRows(newSelectedRowKeys, newSelectedRows);
+        },
+      },
+      {
+        key: "call-is-0",
+        text: "Call is not 0",
+        onSelect: (changableRowKeys, _) => {
+          // Assuming `dataSource` is the array of all your table's data
+          const newSelectedRowKeys = dataSource.master_data
+            .filter((row) => row.totalCall && row.whatsapp2) // Ensure whatsapp2 is present
+            .map((row) => row.key);
+
+          // Corrected line: pass the keys and corresponding rows to handleSelectRows
+          const newSelectedRows = dataSource.master_data.filter((row) =>
+            newSelectedRowKeys.includes(row.key)
+          );
+
+          handleSelectRows(newSelectedRowKeys, newSelectedRows);
+        },
+      },
+    ],
   };
 
   return (

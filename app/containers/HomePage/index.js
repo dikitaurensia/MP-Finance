@@ -4,7 +4,7 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "./styles.scss";
 import "antd/dist/antd.css";
-import { Basic, MasterData } from "..";
+import { Basic, MasterData, Report } from "..";
 
 export default function HomePage(props) {
   return (
@@ -15,6 +15,7 @@ export default function HomePage(props) {
         <Switch>
           <Route exact path="/app" component={Basic} />
           <Route path="/app/master" component={MasterData} />
+          <Route path="/app/report" component={Report} />
         </Switch>
       </div>
     </div>
