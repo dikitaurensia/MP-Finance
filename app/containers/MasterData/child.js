@@ -10,6 +10,7 @@ import {
   Card,
   Popover,
   Space,
+  Input,
 } from "antd";
 import {
   get,
@@ -22,7 +23,11 @@ import {
   formatCurrency,
   SuccessMessage,
 } from "../../helper/publicFunction";
-import { WhatsAppOutlined } from "@ant-design/icons";
+import {
+  CheckCircleTwoTone,
+  EditOutlined,
+  WhatsAppOutlined,
+} from "@ant-design/icons";
 import "../../assets/base.scss";
 import moment from "moment-timezone";
 
@@ -40,9 +45,7 @@ const SalesInvoiceTable = () => {
   const [selectStatus, setSelectStatus] = useState("true");
   const [selectCustomers, setSelectCustomers] = useState([]);
   const [dataCustomers, setDataCustomers] = useState([]);
-
   const [dataWhatsappMap, setdataWhatsappMap] = useState(new Map());
-
   const [databases, setDatabases] = useState([]);
   const [loadingTable, setLoadingTable] = useState(false);
   const [dataSource, setDataSource] = useState({
@@ -65,6 +68,10 @@ const SalesInvoiceTable = () => {
   // State for modal recall
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+
+  // State for modal edit phone number
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState(null);
 
   const [dueDate, setDueDate] = useState([
     moment()
@@ -93,6 +100,21 @@ const SalesInvoiceTable = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedRecord(null);
+  };
+
+  const handleOpenModalEdit = (record) => {
+    setEditRecord(record);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModalEdit = () => {
+    setIsEditModalOpen(false);
+    setEditRecord(null);
+  };
+
+  const handleSavePhoneNumber = () => {
+    setIsEditModalOpen(false);
+    setEditRecord(null);
   };
 
   const columns = [
@@ -186,10 +208,37 @@ const SalesInvoiceTable = () => {
       ),
     },
     {
+      title: "Billed by",
+      dataIndex: "billedBy",
+      key: "billedBy",
+      width: 150,
+      sorter: true,
+      sortOrder: sortedInfo.columnKey === "billedBy" ? sortedInfo.order : null,
+      showSorterTooltip: false,
+    },
+    {
       title: "Handphone",
       dataIndex: "whatsapp2",
       key: "whatsapp2",
       width: 150,
+      render: (value, record) => (
+        <Button
+          type="link"
+          size="small"
+          onClick={() => handleOpenModalEdit(record)}
+          disabled={value}
+          style={{ color: "black" }}
+          icon={
+            value ? (
+              <CheckCircleTwoTone twoToneColor="#52c41a" />
+            ) : (
+              <EditOutlined />
+            )
+          }
+        >
+          {value || ""}
+        </Button>
+      ),
     },
   ];
 
@@ -336,6 +385,7 @@ const SalesInvoiceTable = () => {
             colorWarning,
             whatsapp: wa.whatsapp || "",
             whatsapp2: wa.whatsapp2 || "",
+            billedBy: wa.billed_by || "",
             hash,
             totalCall: callHistory.total,
             calls: callHistory.data,
@@ -867,7 +917,7 @@ const SalesInvoiceTable = () => {
         </div>
       </section>
 
-      {/* Modal remains the same */}
+      {/* Modal Recall */}
       <Modal
         title={`Recall Detail - ${selectedRecord ? selectedRecord.number : ""}`}
         open={isModalOpen}
@@ -883,6 +933,46 @@ const SalesInvoiceTable = () => {
             pagination={false}
             size="small"
           />
+        )}
+      </Modal>
+
+      {/* Modal Edit */}
+      <Modal
+        title={`Update Data`}
+        open={isEditModalOpen}
+        onCancel={handleCloseModalEdit}
+        onOk={handleSavePhoneNumber}
+      >
+        {editRecord && (
+          <>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                marginBottom: 16,
+              }}
+            >
+              <label style={{ width: 150 }}>Customer Name</label>
+              <Input
+                placeholder="Handphone"
+                disabled
+                value={editRecord.customerName}
+              />
+            </div>
+            <div style={{ display: "flex", flexDirection: "row" }}>
+              <label style={{ width: 150 }}>Handphone</label>
+              <Input
+                placeholder="Handphone"
+                // style={{ width: 200 }}
+                value={editRecord.whatsapp2}
+                // onChange={(e) =>
+                //   handleFilterChange({
+                //     target: { name: "invoice", value: e.target.value },
+                //   })
+                // }
+              />
+            </div>
+          </>
         )}
       </Modal>
     </React.Fragment>
