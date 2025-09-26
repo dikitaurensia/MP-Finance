@@ -2,7 +2,7 @@
   "name": "MitranPackFinance",
   "version": "4.0.0",
   "description": "Finance application for Mitran Pack",
-  "homepage": "https://finance.mitranpack.com/",
+  "homepage": "http://finance.mitranpack.com/",
   "repository": {
     "type": "git",
     "url": "git://github.com/react-boilerplate/react-boilerplate.git"

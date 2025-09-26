@@ -116,9 +116,9 @@ module.exports = require("./webpack.base.babel")({
     }),
 
     new WebpackPwaManifest({
-      name: "Mitran Pack",
-      short_name: "Mitran Pack",
-      description: "Mitran Pack Applikasi Armada",
+      name: "Finance | Mitran Pack",
+      short_name: "Finance | Mitran Pack",
+      description: "Mitran Pack Finance Apps",
       background_color: "#fafafa",
       theme_color: "#b1624d",
       inject: true,

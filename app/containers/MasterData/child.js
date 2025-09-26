@@ -11,9 +11,12 @@ import {
   Popover,
   Space,
   Input,
+  List,
+  Avatar,
 } from "antd";
 import {
   get,
+  update,
   create,
   getDataFromAccurate,
   getDataCallHistories,
@@ -25,7 +28,7 @@ import {
 } from "../../helper/publicFunction";
 import {
   CheckCircleTwoTone,
-  EditOutlined,
+  ExclamationCircleOutlined,
   WhatsAppOutlined,
 } from "@ant-design/icons";
 import "../../assets/base.scss";
@@ -39,6 +42,7 @@ import {
 } from "../../helper/constanta";
 
 const { RangePicker } = DatePicker;
+const { confirm } = Modal;
 
 const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(0);
@@ -112,9 +116,29 @@ const SalesInvoiceTable = () => {
     setEditRecord(null);
   };
 
-  const handleSavePhoneNumber = () => {
-    setIsEditModalOpen(false);
-    setEditRecord(null);
+  const handleSavePhoneNumber = async () => {
+    const tableName = "customer_contact";
+    try {
+      const response = await update(tableName, {
+        phone_no: editRecord.whatsapp2,
+        customer_name: editRecord.customerName,
+      });
+      if (response) {
+        setIsEditModalOpen(false);
+        setEditRecord(null);
+        getDataWA();
+      }
+    } catch (error) {
+      ErrorMessage(error);
+    } finally {
+      SuccessMessage("Update phone number successful");
+    }
+  };
+
+  // Handle changes to filter inputs
+  const handleValueEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditRecord((prev) => ({ ...prev, [name]: value }));
   };
 
   const columns = [
@@ -211,10 +235,7 @@ const SalesInvoiceTable = () => {
       title: "Billed by",
       dataIndex: "billedBy",
       key: "billedBy",
-      width: 150,
-      sorter: true,
-      sortOrder: sortedInfo.columnKey === "billedBy" ? sortedInfo.order : null,
-      showSorterTooltip: false,
+      width: 100,
     },
     {
       title: "Handphone",
@@ -226,17 +247,17 @@ const SalesInvoiceTable = () => {
           type="link"
           size="small"
           onClick={() => handleOpenModalEdit(record)}
-          disabled={value}
+          disabled={record.whatsapp2Verified == "true"}
           style={{ color: "black" }}
           icon={
-            value ? (
+            record.whatsapp2Verified == "true" ? (
               <CheckCircleTwoTone twoToneColor="#52c41a" />
             ) : (
-              <EditOutlined />
+              <CheckCircleTwoTone twoToneColor="#a2a2a2ff" />
             )
           }
         >
-          {value || ""}
+          {value || "-"}
         </Button>
       ),
     },
@@ -386,6 +407,7 @@ const SalesInvoiceTable = () => {
             whatsapp: wa.whatsapp || "",
             whatsapp2: wa.whatsapp2 || "",
             billedBy: wa.billed_by || "",
+            whatsapp2Verified: wa.whatsapp2_verify || false,
             hash,
             totalCall: callHistory.total,
             calls: callHistory.data,
@@ -565,6 +587,7 @@ const SalesInvoiceTable = () => {
     if (invoices.length === 0) return;
 
     const db = databases.find((x) => x.id === selectDB);
+    const { token, host, session } = db;
 
     const invoicesByCustomer = invoices.reduce((acc, invoice) => {
       const { customerName } = invoice;
@@ -587,6 +610,37 @@ const SalesInvoiceTable = () => {
         );
 
         const phoneNo = customerInvoices[0].whatsapp2;
+
+        const invoiceId = customerInvoices[0].id;
+        const body = {
+          session,
+          token,
+          api_url: `${host}/accurate/api/sales-invoice/detail.do?id=${invoiceId}`,
+        };
+
+        const response = await getDataFromAccurate(body);
+        const detail = response.d || {};
+        const vaNumber = detail.vaNumber || "";
+
+        const dataBank = {
+          accountName:
+            db.dbname == "CV. Boss Lakban Indonesia"
+              ? "BOSS LAKBAN INDONESIA, CV"
+              : "MITRA ANUGERAH PACKINDO",
+          accountNumber:
+            db.dbname == "CV. Boss Lakban Indonesia"
+              ? "2118888028"
+              : "2118398888",
+        };
+
+        let payment = "";
+        if (vaNumber && grandTotal >= 500000) {
+          payment = `Pembayaran transfer ke BCA Virtual Account: *Mitran Pack* Dengan no : *${vaNumber}*`;
+        } else {
+          payment = `Pembayaran transfer ke Bank BCA: *${
+            dataBank.accountName
+          }* Dengan no : *${dataBank.accountNumber}*`;
+        }
 
         // Grouping
         const invoicesByDueDate = customerInvoices.reduce((acc, invoice) => {
@@ -634,7 +688,7 @@ const SalesInvoiceTable = () => {
 
         message += `*Total Invoice: Rp. ${formatCurrency(
           grandTotal
-        )}*\n\nTerlampir link dokumen invoice dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\n${
+        )}*\n\n${payment}\n\nTerlampir link dokumen invoice dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\n${
           db.dbname
         }`;
 
@@ -660,7 +714,71 @@ const SalesInvoiceTable = () => {
   };
 
   const generateMultipleWhatsApp = () => {
-    sendMessage(selectedRows);
+    const invoiceWithoutWAVerify = selectedRows.filter(
+      (row) => row.whatsapp2Verified != "true"
+    );
+    if (invoiceWithoutWAVerify.length > 0) {
+      const uniqueByCompany = [
+        ...new Map(
+          selectedRows.map((item) => [item.customerName, item])
+        ).values(),
+      ].sort((a, b) => {
+        const av = a.whatsapp2Verified === "false" ? 1 : 0;
+        const bv = b.whatsapp2Verified === "false" ? 1 : 0;
+        return bv - av;
+      });
+      confirm({
+        title: "Send message? Some phone numbers are not verified.",
+        icon: <ExclamationCircleOutlined />,
+        content: (
+          <div
+            style={{
+              maxHeight: "400px",
+              overflowY: "auto",
+              paddingRight: "10px",
+            }}
+          >
+            <List
+              grid={{ gutter: 4, column: 3 }}
+              size="small"
+              bordered
+              dataSource={uniqueByCompany}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar
+                        style={{ backgroundColor: "#fff" }}
+                        icon={
+                          <CheckCircleTwoTone
+                            twoToneColor={
+                              item.whatsapp2Verified == "true"
+                                ? "#52c41a"
+                                : "#a2a2a2ff"
+                            }
+                          />
+                        }
+                      />
+                    }
+                    title={item.customerName}
+                    description={item.whatsapp2 || item.whatsapp || "-"}
+                  />
+                </List.Item>
+              )}
+            />
+          </div>
+        ),
+        width: 1000,
+        onOk() {
+          sendMessage(selectedRows);
+        },
+        onCancel() {
+          console.log("Cancel");
+        },
+      });
+    } else {
+      sendMessage(selectedRows);
+    }
   };
 
   // --- Infinite Scroll & Search ---
@@ -963,13 +1081,12 @@ const SalesInvoiceTable = () => {
               <label style={{ width: 150 }}>Handphone</label>
               <Input
                 placeholder="Handphone"
-                // style={{ width: 200 }}
                 value={editRecord.whatsapp2}
-                // onChange={(e) =>
-                //   handleFilterChange({
-                //     target: { name: "invoice", value: e.target.value },
-                //   })
-                // }
+                onChange={(e) =>
+                  handleValueEditChange({
+                    target: { name: "whatsapp2", value: e.target.value },
+                  })
+                }
               />
             </div>
           </>
