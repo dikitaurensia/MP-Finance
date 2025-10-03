@@ -48,6 +48,8 @@ const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(0);
   const [selectStatus, setSelectStatus] = useState("true");
   const [selectCustomers, setSelectCustomers] = useState([]);
+  const [selectBilledBy, setSelectBilledBy] = useState([]);
+
   const [dataCustomers, setDataCustomers] = useState([]);
   const [dataWhatsappMap, setdataWhatsappMap] = useState(new Map());
   const [databases, setDatabases] = useState([]);
@@ -58,7 +60,7 @@ const SalesInvoiceTable = () => {
   });
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 50,
+    pageSize: 100,
   });
   const [selectedRows, setSelectedRows] = useState([]);
   const [sortedInfo, setSortedInfo] = useState({});
@@ -375,45 +377,55 @@ const SalesInvoiceTable = () => {
       const data = response.d || [];
 
       const invoices = data.map((x) => x.number);
-      // setListInvoices(invoices);
+
+      const masterData = data.map((x) => {
+        const hash = btoa(
+          `${db.dbname.toLowerCase().includes("mitra") ? "mitra" : "boss"}:${
+            x.id
+          }`
+        );
+        const dueDate = moment(x.dueDate, "DD/MM/YYYY");
+        const today = moment();
+        let colorWarning = "black";
+
+        if (dueDate.isBefore(today, "day")) {
+          colorWarning = "red";
+        } else if (dueDate.diff(today, "days") <= 2) {
+          colorWarning = "orange";
+        }
+
+        const wa = dataWhatsappMap.get(x.customer.name) || {};
+
+        const callHistory = callHistoriesMap.get(x.number) || {};
+
+        return {
+          ...x,
+          key: x.id,
+          invoiceLink: `https://pay.mitranpack.com/?q=${hash}`,
+          customerName: x.customer && x.customer.name ? x.customer.name : "-",
+          colorWarning,
+          whatsapp: wa.whatsapp || "",
+          whatsapp2: wa.whatsapp2 || "",
+          billedBy: wa.billed_by || "",
+          whatsapp2Verified: wa.whatsapp2_verify || false,
+          hash,
+          totalCall: callHistory.total,
+          calls: callHistory.data,
+          lastCall: callHistory.lastCall,
+        };
+      });
+
+      let filteredMasterData = masterData;
+      if (selectBilledBy.length !== 0) {
+        filteredMasterData = masterData.filter((x) =>
+          selectBilledBy.some((b) =>
+            x.billedBy.toLowerCase().includes(b.toLowerCase())
+          )
+        );
+      }
 
       setDataSource({
-        master_data: data.map((x) => {
-          const hash = btoa(
-            `${db.dbname.toLowerCase().includes("mitra") ? "mitra" : "boss"}:${
-              x.id
-            }`
-          );
-          const dueDate = moment(x.dueDate, "DD/MM/YYYY");
-          const today = moment();
-          let colorWarning = "black";
-
-          if (dueDate.isBefore(today, "day")) {
-            colorWarning = "red";
-          } else if (dueDate.diff(today, "days") <= 2) {
-            colorWarning = "orange";
-          }
-
-          const wa = dataWhatsappMap.get(x.customer.name) || {};
-
-          const callHistory = callHistoriesMap.get(x.number) || {};
-
-          return {
-            ...x,
-            key: x.id,
-            invoiceLink: `https://pay.mitranpack.com/?q=${hash}`,
-            customerName: x.customer && x.customer.name ? x.customer.name : "-",
-            colorWarning,
-            whatsapp: wa.whatsapp || "",
-            whatsapp2: wa.whatsapp2 || "",
-            billedBy: wa.billed_by || "",
-            whatsapp2Verified: wa.whatsapp2_verify || false,
-            hash,
-            totalCall: callHistory.total,
-            calls: callHistory.data,
-            lastCall: callHistory.lastCall,
-          };
-        }),
+        master_data: filteredMasterData,
         totalData:
           response.sp && response.sp.rowCount ? response.sp.rowCount : 0,
       });
@@ -521,7 +533,7 @@ const SalesInvoiceTable = () => {
     }
 
     const { token, host, session } = db;
-    const pageSize = 50;
+    const pageSize = 100;
     const body = {
       session,
       token,
@@ -565,7 +577,7 @@ const SalesInvoiceTable = () => {
 
   const handleDBChange = (value) => {
     setSelectDB(value);
-    setPagination({ current: 1, pageSize: 50 });
+    setPagination({ current: 1, pageSize: 100 });
     setSelectCustomers([]);
     setDataCustomers([]);
     setCustomerPage(1);
@@ -575,7 +587,7 @@ const SalesInvoiceTable = () => {
 
   const handleCustomerChange = (value) => {
     setSelectCustomers(value);
-    setPagination({ current: 1, pageSize: 50 });
+    setPagination({ current: 1, pageSize: 100 });
   };
 
   const handleSelectRows = (selectedRowKeys, selectedRows) => {
@@ -663,7 +675,7 @@ const SalesInvoiceTable = () => {
         let message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n`;
 
         // Add the main heading for the list of invoices
-        message += `Faktur yang sudah / akan jatuh tempo\n`;
+        message += `Faktur yang sudah/ akan jatuh tempo\n`;
 
         // Iterate through each due date group and add them to the message
         let counter = 1; // Start a global counter for the numbered list
@@ -833,6 +845,7 @@ const SalesInvoiceTable = () => {
     dueDate,
     callHistoriesMap,
     invoiceDate,
+    selectBilledBy,
   ]); // <-- Added databases as a dependency
 
   // --- Render JSX ---
@@ -984,6 +997,25 @@ const SalesInvoiceTable = () => {
                 />
               </div>
 
+              {/* Billed by */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Billed By:</label>
+                <Select
+                  mode="multiple"
+                  allowClear
+                  className="customer-select"
+                  placeholder="Choose Billed By"
+                  value={selectBilledBy}
+                  onChange={setSelectBilledBy}
+                  style={{ minWidth: 250 }}
+                >
+                  <Select.Option value="Grup">Grup</Select.Option>
+                  <Select.Option value="Koko">Koko</Select.Option>
+                  <Select.Option value="Admin">Admin</Select.Option>
+                  <Select.Option value="Finance">Finance</Select.Option>
+                </Select>
+              </div>
+
               {/* Customer Select */}
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ marginBottom: 4 }}>Customer Name:</label>
@@ -991,7 +1023,7 @@ const SalesInvoiceTable = () => {
                   mode="multiple"
                   allowClear
                   className="customer-select"
-                  placeholder="Pilih Customer"
+                  placeholder="Choose Customer"
                   value={selectCustomers}
                   onChange={handleCustomerChange}
                   style={{ minWidth: 250 }}
@@ -1026,7 +1058,7 @@ const SalesInvoiceTable = () => {
               ...pagination,
               position: "bottom",
               showSizeChanger: true,
-              pageSizeOptions: ["20", "50", "100"],
+              pageSizeOptions: ["50", "100", "200"],
               total: dataSource.totalData,
             }}
             onChange={handleTableChange}
