@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Table, DatePicker, Button, Input, Popover, Space, Card } from "antd";
+import {
+  Table,
+  DatePicker,
+  Button,
+  Input,
+  Popover,
+  Space,
+  Card,
+  Select,
+} from "antd";
 import { reportCallHistory } from "../../service/endPoint";
 import { FORMAT_DATE, FORMAT_DATE_LABEL_FULL } from "../../helper/constanta";
 import moment from "moment-timezone";
 import { ErrorMessage, getJudulTgl } from "../../helper/publicFunction";
 import ReactExport from "react-export-excel-hot-fix";
 import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
-import Search from "antd/lib/transfer/search";
 const ExcelFile = ReactExport.ExcelFile;
 const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
 const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
@@ -101,8 +109,8 @@ const HistoryCall = () => {
     setIsLoading(true);
 
     let getData = reportCallHistory({
-      startDate: filterDate[0],
-      endDate: filterDate[1],
+      startDate: `${filterDate[0]} 00:00:00`,
+      endDate: `${filterDate[1]} 23:59:59`,
     });
     getData
       .then((response) => {
@@ -132,13 +140,17 @@ const HistoryCall = () => {
       const filtered = data.filter((item) => {
         const invoice = filters.invoice || "";
         const customer = filters.customer_name || "";
+        const status = filters.status || "";
         const invoiceMatch = item.invoice
           .toLowerCase()
           .includes(invoice.toLowerCase());
         const customerMatch = item.customer_name
           .toLowerCase()
           .includes(customer.toLowerCase());
-        return invoiceMatch && customerMatch;
+        const statusMatch = item.status
+          .toLowerCase()
+          .includes(status.toLowerCase());
+        return invoiceMatch && customerMatch && statusMatch;
       });
       setFilteredData(filtered);
     };
@@ -149,44 +161,6 @@ const HistoryCall = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Helper function to handle CSV download
-  const handleDownloadCSV = () => {
-    if (filteredData.length === 0) return;
-
-    // Get the headers from the column titles
-    const headers = columns.map((col) => col.title);
-    const csvRows = [headers.join(",")];
-
-    filteredData.forEach((item) => {
-      const row = columns
-        .map((col) => {
-          let value = item[col.dataIndex];
-          // Special handling for the 'message' field to get the full text
-          if (col.dataIndex === "message") {
-            value = item.message;
-          }
-
-          if (typeof value === "string" && value.includes(",")) {
-            value = `"${value.replace(/"/g, '""')}"`;
-          }
-          return value;
-        })
-        .join(",");
-      csvRows.push(row);
-    });
-
-    const csvContent = csvRows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "call_history.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -226,6 +200,19 @@ const HistoryCall = () => {
               })
             }
           />
+          <Select
+            placeholder="Status"
+            style={{ width: 200 }}
+            allowClear
+            defaultValue={filters.status}
+            onChange={(value) =>
+              handleFilterChange({ target: { name: "status", value } })
+            }
+          >
+            <Select.Option value="sukses">Success</Select.Option>
+            <Select.Option value="gagal">Failed</Select.Option>
+          </Select>
+
           <RangePicker
             defaultValue={[
               moment(filterDate[0], FORMAT_DATE),

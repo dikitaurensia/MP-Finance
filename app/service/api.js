@@ -1,4 +1,9 @@
-const { ACCESS_TOKEN, TOKEN_FCM } = require("../helper/constanta");
+const {
+  ACCESS_TOKEN,
+  TOKEN_FCM,
+  MODE_LOGIN,
+  NAME_LOGIN,
+} = require("../helper/constanta");
 
 export const request = (options) => {
   const headers = new Headers({ "Content-Type": "application/json" });
@@ -20,6 +25,17 @@ export const request = (options) => {
     .then((response) =>
       response.json().then((json) => {
         if (!response.ok) {
+          if (response.status == 401) {
+            localStorage.removeItem(ACCESS_TOKEN);
+            localStorage.removeItem(MODE_LOGIN);
+            localStorage.removeItem(NAME_LOGIN);
+            localStorage.removeItem("notifState");
+            localStorage.removeItem("notif");
+
+            // Ideally use React Router, but fallback here:
+            window.location.href = "/";
+            // return Promise.reject(json);
+          }
           return Promise.reject(json);
         }
         return json;
