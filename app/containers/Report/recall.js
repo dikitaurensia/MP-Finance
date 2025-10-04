@@ -1,41 +1,22 @@
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  DatePicker,
-  Button,
-  Input,
-  Popover,
-  Space,
-  Card,
-  Select,
-} from "antd";
-import { reportCallHistory } from "../../service/endPoint";
-import { FORMAT_DATE, FORMAT_DATE_LABEL_FULL } from "../../helper/constanta";
-import moment from "moment-timezone";
-import { ErrorMessage, getJudulTgl } from "../../helper/publicFunction";
+import { Table, Button, Input, Space } from "antd";
+import { reportRecall } from "../../service/endPoint";
+import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
 import ReactExport from "react-export-excel-hot-fix";
 import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 const ExcelFile = ReactExport.ExcelFile;
 const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
 const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
 
-const { RangePicker } = DatePicker;
-
-const HistoryCall = () => {
+const Recall = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [filterDate, setFilterDate] = useState([
-    moment()
-      .clone()
-      .startOf("month")
-      .format(FORMAT_DATE),
-    moment().format(FORMAT_DATE),
-  ]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
-    dateRange: [moment().format(FORMAT_DATE), moment().format(FORMAT_DATE)],
     invoice: "",
     customer: "",
+    recall: "all",
   });
 
   const columns = [
@@ -57,61 +38,35 @@ const HistoryCall = () => {
       title: "Invoice Number",
       dataIndex: "invoice",
       key: "invoice",
-      width: 200,
+      width: 150,
       sorter: (a, b) => a.invoice.localeCompare(b.invoice),
     },
     {
-      title: "Date",
-      dataIndex: "created_at",
-      key: "created_at",
-      width: 200,
-      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-      render: (value, record) => (
-        <div>{value ? moment(value).format(FORMAT_DATE_LABEL_FULL) : "-"}</div>
+      title: "Total Amount",
+      dataIndex: "total_amount",
+      key: "total_amount",
+      width: 100,
+      render: (value) => (
+        <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
       ),
+      sorter: (a, b) => a.total_amount - b.total_amount,
     },
     {
-      title: "Sent to",
-      dataIndex: "phone_no",
-      key: "phone_no",
-      width: 180,
-    },
-    {
-      title: "Message",
-      dataIndex: "message",
-      key: "message",
-      width: 300,
-      render: (text) => (
-        <Popover
-          content={<div style={{ maxWidth: 400 }}>{text}</div>}
-          title="Full Message"
-        >
-          <span style={{ cursor: "pointer", color: "#1890ff" }}>
-            {text.length > 35 ? `${text.substring(0, 35)}...` : text}
-          </span>
-        </Popover>
+      title: "Total Call",
+      dataIndex: "recall",
+      key: "recall",
+      width: 80,
+      render: (value) => (
+        <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
       ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status) => {
-        const color =
-          status === "sukses" ? "green" : status === "Sent" ? "blue" : "red";
-        return <span style={{ color, fontWeight: "bold" }}>{status}</span>;
-      },
+      sorter: (a, b) => a.recall - b.recall,
     },
   ];
 
   const getData = () => {
     setIsLoading(true);
 
-    let getData = reportCallHistory({
-      startDate: `${filterDate[0]} 00:00:00`,
-      endDate: `${filterDate[1]} 23:59:59`,
-    });
+    let getData = reportRecall();
     getData
       .then((response) => {
         setData(
@@ -140,17 +95,16 @@ const HistoryCall = () => {
       const filtered = data.filter((item) => {
         const invoice = filters.invoice || "";
         const customer = filters.customer_name || "";
-        const status = filters.status || "";
+        const recall = filters.recall || "all";
         const invoiceMatch = item.invoice
           .toLowerCase()
           .includes(invoice.toLowerCase());
         const customerMatch = item.customer_name
           .toLowerCase()
           .includes(customer.toLowerCase());
-        const statusMatch = item.status
-          .toLowerCase()
-          .includes(status.toLowerCase());
-        return invoiceMatch && customerMatch && statusMatch;
+        const recallMatch = recall != "all" ? item.recall == recall : true;
+
+        return invoiceMatch && customerMatch && recallMatch;
       });
       setFilteredData(filtered);
     };
@@ -200,36 +154,24 @@ const HistoryCall = () => {
               })
             }
           />
-          <Select
-            placeholder="Status"
-            style={{ width: 200 }}
-            allowClear
-            defaultValue={filters.status}
-            onChange={(value) =>
-              handleFilterChange({ target: { name: "status", value } })
-            }
-          >
-            <Select.Option value="sukses">Success</Select.Option>
-            <Select.Option value="gagal">Failed</Select.Option>
-          </Select>
 
-          <RangePicker
-            defaultValue={[
-              moment(filterDate[0], FORMAT_DATE),
-              moment(filterDate[1], FORMAT_DATE),
-            ]}
-            format={FORMAT_DATE}
-            onChange={(value, dateString) => setFilterDate(dateString)}
-            style={{ width: 240 }}
+          <Input
+            type="number"
+            placeholder="Total Call"
+            style={{ width: 200 }}
+            value={filters.recall}
+            onChange={(e) =>
+              handleFilterChange({
+                target: { name: "recall", value: e.target.value },
+              })
+            }
           />
+
           <Button type="primary" onClick={getData} icon={<SearchOutlined />}>
             Search
           </Button>
           <ExcelFile
-            filename={`Report History Call ${getJudulTgl(
-              filterDate[0],
-              filterDate[1]
-            )}`}
+            filename={`Report Recall`}
             element={
               <Button
                 key="multi-wa"
@@ -245,10 +187,7 @@ const HistoryCall = () => {
               </Button>
             }
           >
-            <ExcelSheet
-              data={data}
-              name={getJudulTgl(filterDate[0], filterDate[1])}
-            >
+            <ExcelSheet data={data} name={"recall"}>
               {columns.map((data) => (
                 <ExcelColumn label={data.title} value={data.dataIndex} />
               ))}
@@ -274,4 +213,4 @@ const HistoryCall = () => {
   );
 };
 
-export default HistoryCall;
+export default Recall;

@@ -6,3 +6,4 @@ export const HomePage = loadable(() => import("./HomePage/index"));
 export const MasterData = loadable(() => import("./MasterData"));
 export const NotFoundPage = loadable(() => import("./NotFoundPage/index"));
 export const Report = loadable(() => import("./Report"));
+export const Template = loadable(() => import("./Template"));

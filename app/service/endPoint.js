@@ -258,6 +258,13 @@ export function reportCallHistory(body) {
   });
 }
 
+export function reportRecall() {
+  return request({
+    url: `${API_ROOT}/report/recall`,
+    method: "GET",
+  });
+}
+
 export function reportpoin(body) {
   let { startDate, endDate } = body;
   return request({

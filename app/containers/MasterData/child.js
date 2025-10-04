@@ -708,7 +708,9 @@ const SalesInvoiceTable = () => {
           .tz("Asia/Jakarta")
           .format(FORMAT_DATE_FULL);
 
-        const invoicesToSend = customerInvoices.map((x) => x.number);
+        const invoicesToSend = customerInvoices.map((x) => {
+          return { number: x.number, total_amount: x.totalAmount };
+        });
 
         await create("call_history", {
           invoices: invoicesToSend,

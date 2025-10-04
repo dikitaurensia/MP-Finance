@@ -4,9 +4,15 @@ import { PageHeader, Tabs } from "antd";
 import "antd/dist/antd.css";
 import "../../assets/base.scss";
 import HistoryCall from "./history-call";
+import Recall from "./recall";
+import Outstanding from "./outstanding";
 
 const { TabPane } = Tabs;
-const ItemTabs = [{ name: "History Call", key: 1, comp: HistoryCall }];
+const ItemTabs = [
+  { name: "History Call", key: 1, comp: HistoryCall },
+  { name: "Summary Recall", key: 2, comp: Recall },
+  { name: "Outstanding", key: 3, comp: Outstanding },
+];
 class Child extends React.Component {
   constructor(props) {
     super(props);
