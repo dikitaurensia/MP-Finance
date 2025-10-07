@@ -594,6 +594,8 @@ const SalesInvoiceTable = () => {
     setSelectedRows(selectedRows);
   };
 
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   // --- WhatsApp Logic ---
   const sendMessage = async (invoices) => {
     if (invoices.length === 0) return;
@@ -721,6 +723,7 @@ const SalesInvoiceTable = () => {
         });
 
         SuccessMessage("send WA ke " + customerName);
+        await delay(10000);
       }
     }
 
@@ -834,7 +837,7 @@ const SalesInvoiceTable = () => {
   }, [listInvoices]);
 
   useEffect(() => {
-    if (selectDB) {
+    if (selectDB && dataWhatsappMap) {
       getData();
     }
   }, [
