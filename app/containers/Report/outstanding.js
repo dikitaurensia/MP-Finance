@@ -283,7 +283,12 @@ const Outstanding = () => {
       return x.customer_name === row.customer_name;
     });
     return (
-      <Table columns={columnsExpand} dataSource={inTable} pagination={false} />
+      <Table
+        size="small"
+        columns={columnsExpand}
+        dataSource={inTable}
+        pagination={false}
+      />
     );
   };
 
@@ -395,6 +400,7 @@ const Outstanding = () => {
         </div>
 
         <Table
+          size="small"
           columns={columns}
           dataSource={filteredData}
           loading={isLoading}

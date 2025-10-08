@@ -277,6 +277,7 @@ const HistoryCall = () => {
 
         {/* Data table */}
         <Table
+          size="small"
           columns={columns}
           dataSource={filteredData}
           loading={isLoading}

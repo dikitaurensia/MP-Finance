@@ -196,6 +196,7 @@ class WhatsAppBillingDashboard extends React.Component {
                 style={cardStyle("#40a9ff")}
               >
                 <Table
+                  size="small"
                   dataSource={recentNotificationHistory}
                   columns={notificationColumns}
                   pagination={{ pageSize: 5 }}

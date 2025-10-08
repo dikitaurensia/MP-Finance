@@ -47,17 +47,17 @@ const { confirm } = Modal;
 const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(0);
   const [selectStatus, setSelectStatus] = useState("true");
-  const [selectCustomers, setSelectCustomers] = useState([]);
+  const [selectCustomers, setSelectCustomers] = useState("");
   const [selectBilledBy, setSelectBilledBy] = useState([]);
 
   const [dataCustomers, setDataCustomers] = useState([]);
   const [dataWhatsappMap, setdataWhatsappMap] = useState(new Map());
   const [databases, setDatabases] = useState([]);
   const [loadingTable, setLoadingTable] = useState(false);
-  const [dataSource, setDataSource] = useState({
-    master_data: [],
-    totalData: 0,
-  });
+  const [dataSource, setDataSource] = useState([]);
+
+  const [filteredData, setFilteredData] = useState([]);
+
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 100,
@@ -184,10 +184,11 @@ const SalesInvoiceTable = () => {
       dataIndex: "customerName",
       key: "customerName",
       width: 250,
-      sorter: true,
-      sortOrder:
-        sortedInfo.columnKey === "customerName" ? sortedInfo.order : null,
-      showSorterTooltip: false,
+      // sorter: true,
+      // sortOrder:
+      //   sortedInfo.columnKey === "customerName" ? sortedInfo.order : null,
+      // showSorterTooltip: false,
+      sorter: (a, b) => a.customerName.localeCompare(b.customerName),
       fixed: "left",
     },
     {
@@ -210,10 +211,12 @@ const SalesInvoiceTable = () => {
       dataIndex: "transDateView",
       key: "transDateView",
       width: 150,
-      sorter: true,
-      sortOrder:
-        sortedInfo.columnKey === "transDateView" ? sortedInfo.order : null,
-      showSorterTooltip: false,
+      sorter: (a, b) => new Date(a.transDate) - new Date(b.transDate),
+
+      // sorter: true,
+      // sortOrder:
+      //   sortedInfo.columnKey === "transDateView" ? sortedInfo.order : null,
+      // showSorterTooltip: false,
     },
     {
       title: "Due Date",
@@ -327,12 +330,12 @@ const SalesInvoiceTable = () => {
     }
 
     let queryCustomer = "";
-    if (selectCustomers.length > 0) {
-      const cust = selectCustomers.map((x) => {
-        return `{"id": ${x}}`;
-      });
-      queryCustomer = `&customerFilter=[${encodeURIComponent(cust.join(","))}]`;
-    }
+    // if (selectCustomers.length > 0) {
+    //   const cust = selectCustomers.map((x) => {
+    //     return `{"id": ${x}}`;
+    //   });
+    //   queryCustomer = `&customerFilter=[${encodeURIComponent(cust.join(","))}]`;
+    // }
 
     const tempDueDate = `{"type": "at-date","operator": null,"date": "${
       dueDate[0]
@@ -366,19 +369,39 @@ const SalesInvoiceTable = () => {
       }
     }
 
-    const body = {
-      session,
-      token,
-      api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}${queryDueDate}${queryInvoiceDate}`,
-    };
-
-    try {
+    let allData = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const body = {
+        session,
+        token,
+        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${page}${queryStatus}${queryCustomer}${querySort}${queryDueDate}${queryInvoiceDate}`,
+      };
       const response = await getDataFromAccurate(body);
       const data = response.d || [];
+      allData = [...allData, ...data];
 
-      const invoices = data.map((x) => x.number);
+      if (data.length < 100) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
 
-      const masterData = data.map((x) => {
+    // const body = {
+    //   session,
+    //   token,
+    //   api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}${queryDueDate}${queryInvoiceDate}`,
+    // };
+
+    try {
+      // const response = await getDataFromAccurate(body);
+      // const data = response.d || [];
+
+      const invoices = allData.map((x) => x.number);
+
+      const masterData = allData.map((x) => {
         const hash = btoa(
           `${db.dbname.toLowerCase().includes("mitra") ? "mitra" : "boss"}:${
             x.id
@@ -415,20 +438,17 @@ const SalesInvoiceTable = () => {
         };
       });
 
-      let filteredMasterData = masterData;
-      if (selectBilledBy.length !== 0) {
-        filteredMasterData = masterData.filter((x) =>
-          selectBilledBy.some((b) =>
-            x.billedBy.toLowerCase().includes(b.toLowerCase())
-          )
-        );
-      }
+      // let filteredMasterData = masterData;
+      // if (selectBilledBy.length !== 0) {
+      //   filteredMasterData = masterData.filter((x) =>
+      //     selectBilledBy.some((b) =>
+      //       x.billedBy.toLowerCase().includes(b.toLowerCase())
+      //     )
+      //   );
+      // }
 
-      setDataSource({
-        master_data: filteredMasterData,
-        totalData:
-          response.sp && response.sp.rowCount ? response.sp.rowCount : 0,
-      });
+      setDataSource(masterData);
+      setFilteredData(masterData);
       setSelectedRows([]);
 
       setListInvoices((currentInvoices) => {
@@ -578,17 +598,17 @@ const SalesInvoiceTable = () => {
   const handleDBChange = (value) => {
     setSelectDB(value);
     setPagination({ current: 1, pageSize: 100 });
-    setSelectCustomers([]);
+    setSelectCustomers("");
     setDataCustomers([]);
     setCustomerPage(1);
     setHasMoreCustomers(true);
     setCustomerSearchKeyword("");
   };
 
-  const handleCustomerChange = (value) => {
-    setSelectCustomers(value);
-    setPagination({ current: 1, pageSize: 100 });
-  };
+  // const handleCustomerChange = (value) => {
+  //   setSelectCustomers(value);
+  //   setPagination({ current: 1, pageSize: 100 });
+  // };
 
   const handleSelectRows = (selectedRowKeys, selectedRows) => {
     setSelectedRows(selectedRows);
@@ -844,14 +864,46 @@ const SalesInvoiceTable = () => {
     selectDB,
     pagination,
     selectStatus,
-    selectCustomers,
+    // selectCustomers,
     databases,
     dataWhatsappMap,
     dueDate,
     callHistoriesMap,
     invoiceDate,
-    selectBilledBy,
-  ]); // <-- Added databases as a dependency
+    // selectBilledBy,
+  ]);
+
+  // let filteredMasterData = masterData;
+  // if (selectBilledBy.length !== 0) {
+  //   filteredMasterData = masterData.filter((x) =>
+  //     selectBilledBy.some((b) =>
+  //       x.billedBy.toLowerCase().includes(b.toLowerCase())
+  //     )
+  //   );
+  // }
+
+  useEffect(() => {
+    const applyFilters = () => {
+      const filtered = dataSource.filter((item) => {
+        // const customer = filters.customer_name || "";
+
+        const customerMatch = item.customerName
+          .toLowerCase()
+          .includes(selectCustomers.toLowerCase());
+
+        let billedByMatch = true;
+        if (selectBilledBy.length !== 0) {
+          billedByMatch = selectBilledBy.some((b) =>
+            item.billedBy.toLowerCase().includes(b.toLowerCase())
+          );
+        }
+
+        return customerMatch && billedByMatch;
+      });
+      setFilteredData(filtered);
+    };
+    applyFilters();
+  }, [selectBilledBy, selectCustomers, dataSource]);
 
   // --- Render JSX ---
   const rowSelection = {
@@ -867,13 +919,11 @@ const SalesInvoiceTable = () => {
         key: "call-is-0",
         text: "Call is 0",
         onSelect: (changableRowKeys, _) => {
-          // Assuming `dataSource` is the array of all your table's data
-          const newSelectedRowKeys = dataSource.master_data
+          const newSelectedRowKeys = filteredData
             .filter((row) => !row.totalCall && row.whatsapp2) // Ensure whatsapp2 is present
             .map((row) => row.key);
 
-          // Corrected line: pass the keys and corresponding rows to handleSelectRows
-          const newSelectedRows = dataSource.master_data.filter((row) =>
+          const newSelectedRows = filteredData.filter((row) =>
             newSelectedRowKeys.includes(row.key)
           );
 
@@ -884,13 +934,11 @@ const SalesInvoiceTable = () => {
         key: "call-is-0",
         text: "Call is not 0",
         onSelect: (changableRowKeys, _) => {
-          // Assuming `dataSource` is the array of all your table's data
-          const newSelectedRowKeys = dataSource.master_data
+          const newSelectedRowKeys = filteredData
             .filter((row) => row.totalCall && row.whatsapp2) // Ensure whatsapp2 is present
             .map((row) => row.key);
 
-          // Corrected line: pass the keys and corresponding rows to handleSelectRows
-          const newSelectedRows = dataSource.master_data.filter((row) =>
+          const newSelectedRows = filteredData.filter((row) =>
             newSelectedRowKeys.includes(row.key)
           );
 
@@ -1025,7 +1073,14 @@ const SalesInvoiceTable = () => {
               {/* Customer Select */}
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ marginBottom: 4 }}>Customer Name:</label>
-                <Select
+                <Input
+                  placeholder="Customer Name"
+                  style={{ width: 200 }}
+                  value={selectCustomers}
+                  // onChange={setSelectCustomers}
+                  onChange={(e) => setSelectCustomers(e.target.value)}
+                />
+                {/* <Select
                   mode="multiple"
                   allowClear
                   className="customer-select"
@@ -1048,26 +1103,18 @@ const SalesInvoiceTable = () => {
                       <Spin size="small" />
                     </div>
                   )}
-                </Select>
+                </Select> */}
               </div>
             </div>
           </Card>
           <Table
             key="masterdata"
-            size="middle"
-            dataSource={dataSource.master_data}
+            size="small"
+            dataSource={filteredData}
             columns={columns}
             bordered={false}
-            scroll={{ y: 350 }}
             loading={loadingTable}
-            pagination={{
-              ...pagination,
-              position: "bottom",
-              showSizeChanger: true,
-              pageSizeOptions: ["50", "100", "200"],
-              total: dataSource.totalData,
-            }}
-            onChange={handleTableChange}
+            pagination={false}
             rowSelection={rowSelection}
           />
         </div>
