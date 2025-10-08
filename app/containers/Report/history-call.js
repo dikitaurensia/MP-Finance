@@ -180,49 +180,67 @@ const HistoryCall = () => {
             alignItems: "center",
           }}
         >
-          <Input
-            placeholder="Customer Name"
-            style={{ width: 200 }}
-            value={filters.customer_name}
-            onChange={(e) =>
-              handleFilterChange({
-                target: { name: "customer_name", value: e.target.value },
-              })
-            }
-          />
-          <Input
-            placeholder="Invoice Number"
-            style={{ width: 200 }}
-            value={filters.invoice}
-            onChange={(e) =>
-              handleFilterChange({
-                target: { name: "invoice", value: e.target.value },
-              })
-            }
-          />
-          <Select
-            placeholder="Status"
-            style={{ width: 200 }}
-            allowClear
-            defaultValue={filters.status}
-            onChange={(value) =>
-              handleFilterChange({ target: { name: "status", value } })
-            }
-          >
-            <Select.Option value="sukses">Success</Select.Option>
-            <Select.Option value="gagal">Failed</Select.Option>
-          </Select>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Customer Name:</label>
+            <Input
+              placeholder="Customer Name"
+              style={{ width: 200 }}
+              value={filters.customer_name}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "customer_name", value: e.target.value },
+                })
+              }
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Invoice Number:</label>
+            <Input
+              placeholder="Invoice Number"
+              style={{ width: 200 }}
+              value={filters.invoice}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "invoice", value: e.target.value },
+                })
+              }
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Status:</label>
+            <Select
+              placeholder="Status"
+              style={{ width: 200 }}
+              allowClear
+              defaultValue={filters.status}
+              onChange={(value) =>
+                handleFilterChange({ target: { name: "status", value } })
+              }
+            >
+              <Select.Option value="sukses">Success</Select.Option>
+              <Select.Option value="gagal">Failed</Select.Option>
+            </Select>
+          </div>
 
-          <RangePicker
-            defaultValue={[
-              moment(filterDate[0], FORMAT_DATE),
-              moment(filterDate[1], FORMAT_DATE),
-            ]}
-            format={FORMAT_DATE}
-            onChange={(value, dateString) => setFilterDate(dateString)}
-            style={{ width: 240 }}
-          />
-          <Button type="primary" onClick={getData} icon={<SearchOutlined />}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Date:</label>
+            <RangePicker
+              defaultValue={[
+                moment(filterDate[0], FORMAT_DATE),
+                moment(filterDate[1], FORMAT_DATE),
+              ]}
+              format={FORMAT_DATE}
+              onChange={(value, dateString) => setFilterDate(dateString)}
+              style={{ width: 240 }}
+            />
+          </div>
+
+          <Button
+            type="primary"
+            style={{ marginTop: 25 }}
+            onClick={getData}
+            icon={<SearchOutlined />}
+          >
             Search
           </Button>
           <ExcelFile
@@ -239,6 +257,7 @@ const HistoryCall = () => {
                   backgroundColor: "#25D366",
                   borderColor: "#25D366",
                   color: "white",
+                  marginTop: 25,
                 }}
               >
                 Export

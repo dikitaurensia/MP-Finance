@@ -12,6 +12,7 @@ import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 const ExcelFile = ReactExport.ExcelFile;
 const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
 const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
+const { RangePicker } = DatePicker;
 
 const Outstanding = () => {
   const [selectDB, setSelectDB] = useState(0);
@@ -21,9 +22,19 @@ const Outstanding = () => {
   const [dataExpanded, setDataExpanded] = useState([]);
 
   const [filteredData, setFilteredData] = useState([]);
-  const [filterDate, setFilterDate] = useState(
+
+  const [filterDueDate, setFilterDueDate] = useState(
     moment().format(FORMAT_DATE_FILTER_ACC)
   );
+
+  const [filterInvoiceDate, setFilterInvoiceDate] = useState([
+    moment()
+      .clone()
+      .startOf("month")
+      .format(FORMAT_DATE_FILTER_ACC),
+    moment().format(FORMAT_DATE_FILTER_ACC),
+  ]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     invoice: "",
@@ -66,6 +77,12 @@ const Outstanding = () => {
       sorter: (a, b) => a.totalInvoice - b.totalInvoice,
     },
     {
+      title: "Invoice Date",
+      dataIndex: "transDateView",
+      key: "transDateView",
+      width: 180,
+    },
+    {
       title: "Due Date",
       dataIndex: "dueDateView",
       key: "dueDateView",
@@ -103,6 +120,12 @@ const Outstanding = () => {
       ),
     },
     {
+      title: "Invoice Date",
+      dataIndex: "transDateView",
+      key: "transDateView",
+      width: 180,
+    },
+    {
       title: "Due Date",
       dataIndex: "dueDateView",
       key: "dueDateView",
@@ -119,13 +142,22 @@ const Outstanding = () => {
     let allData = [];
     let page = 1;
     let hasMore = true;
-    let queryDueDate = `&filter.dueDate.op=LESS_EQUAL_THAN&filter.dueDate.val=${filterDate}`;
+    let queryDueDate = `&filter.dueDate.op=LESS_EQUAL_THAN&filter.dueDate.val=${filterDueDate}`;
+
+    const tempInvoiceDate = `{"type": "at-date","operator": null,"amount": null,"date": "${
+      filterInvoiceDate[0]
+    }","endDate": "${filterInvoiceDate[1]}"}`;
+
+    const queryInvoiceDate =
+      filterInvoiceDate[0] && filterInvoiceDate[1]
+        ? `&transDateFilter=${encodeURIComponent(tempInvoiceDate)}`
+        : "";
 
     while (hasMore) {
       const body = {
         session,
         token,
-        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&outstandingFilter=true&sp.pageSize=100&sp.page=${page}${queryDueDate}`,
+        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&outstandingFilter=true&sp.pageSize=100&sp.page=${page}${queryDueDate}${queryInvoiceDate}`,
       };
       const response = await getDataFromAccurate(body);
       const data = response.d || [];
@@ -167,7 +199,12 @@ const Outstanding = () => {
   const summarizeInvoices = (invoices) => {
     return Object.values(
       invoices.reduce((acc, invoice) => {
-        const { customer_name, totalAmount, dueDateView } = invoice;
+        const {
+          customer_name,
+          totalAmount,
+          dueDateView,
+          transDateView,
+        } = invoice;
 
         if (!acc[customer_name]) {
           acc[customer_name] = {
@@ -175,6 +212,7 @@ const Outstanding = () => {
             totalOutstanding: 0,
             totalInvoice: 0,
             dueDateView: null,
+            transDateView: null,
           };
         }
 
@@ -188,6 +226,15 @@ const Outstanding = () => {
           )
         ) {
           acc[customer_name].dueDateView = dueDateView;
+        }
+
+        if (
+          !acc[customer_name].transDateView ||
+          moment(transDateView, FORMAT_DATE_LABEL).isBefore(
+            moment(acc[customer_name].transDateView, FORMAT_DATE_LABEL)
+          )
+        ) {
+          acc[customer_name].transDateView = transDateView;
         }
 
         return acc;
@@ -207,7 +254,7 @@ const Outstanding = () => {
     if (selectDB) {
       getData();
     }
-  }, [selectDB, filterDate]);
+  }, [selectDB, filterDueDate, filterInvoiceDate]);
 
   useEffect(() => {
     const applyFilters = () => {
@@ -256,36 +303,64 @@ const Outstanding = () => {
             alignItems: "center",
           }}
         >
-          <Select
-            className="database-select"
-            value={selectDB}
-            onChange={handleDBChange}
-            style={{ width: 250 }}
-          >
-            {databases.map((item) => (
-              <Select.Option value={item.id} key={item.id}>
-                {item.dbname}
-              </Select.Option>
-            ))}
-          </Select>
-          <Input
-            placeholder="Customer Name"
-            style={{ width: 200 }}
-            value={filters.customer_name}
-            onChange={(e) =>
-              handleFilterChange({
-                target: { name: "customer_name", value: e.target.value },
-              })
-            }
-          />
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Database:</label>
+            <Select
+              className="database-select"
+              value={selectDB}
+              onChange={handleDBChange}
+              style={{ width: 250 }}
+            >
+              {databases.map((item) => (
+                <Select.Option value={item.id} key={item.id}>
+                  {item.dbname}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Customer Name:</label>
+            <Input
+              placeholder="Customer Name"
+              style={{ width: 200 }}
+              value={filters.customer_name}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "customer_name", value: e.target.value },
+                })
+              }
+            />
+          </div>
 
-          <DatePicker
-            defaultValue={moment(filterDate, FORMAT_DATE_FILTER_ACC)}
-            format={FORMAT_DATE_FILTER_ACC}
-            onChange={(value, dateString) => setFilterDate(dateString)}
-            style={{ width: 240 }}
-          />
-          <Button type="primary" onClick={getData} icon={<SearchOutlined />}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Invoice Date:</label>
+            <RangePicker
+              defaultValue={[
+                moment(filterInvoiceDate[0], FORMAT_DATE_FILTER_ACC),
+                moment(filterInvoiceDate[1], FORMAT_DATE_FILTER_ACC),
+              ]}
+              format={FORMAT_DATE_FILTER_ACC}
+              onChange={(value, dateString) => setFilterInvoiceDate(dateString)}
+              style={{ width: 250 }}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Due Date:</label>
+            <DatePicker
+              defaultValue={moment(filterDueDate, FORMAT_DATE_FILTER_ACC)}
+              format={FORMAT_DATE_FILTER_ACC}
+              onChange={(value, dateString) => setFilterDueDate(dateString)}
+              style={{ width: 240 }}
+            />
+          </div>
+
+          <Button
+            type="primary"
+            style={{ marginTop: 25 }}
+            onClick={getData}
+            icon={<SearchOutlined />}
+          >
             Search
           </Button>
           <ExcelFile
@@ -299,6 +374,7 @@ const Outstanding = () => {
                   backgroundColor: "#25D366",
                   borderColor: "#25D366",
                   color: "white",
+                  marginTop: 25,
                 }}
               >
                 Export

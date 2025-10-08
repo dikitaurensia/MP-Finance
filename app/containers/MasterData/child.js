@@ -406,7 +406,7 @@ const SalesInvoiceTable = () => {
           colorWarning,
           whatsapp: wa.whatsapp || "",
           whatsapp2: wa.whatsapp2 || "",
-          billedBy: wa.billed_by || "",
+          billedBy: wa.billed_by || "-",
           whatsapp2Verified: wa.whatsapp2_verify || false,
           hash,
           totalCall: callHistory.total,
@@ -1014,6 +1014,7 @@ const SalesInvoiceTable = () => {
                   onChange={setSelectBilledBy}
                   style={{ minWidth: 250 }}
                 >
+                  <Select.Option value="-">Kosong</Select.Option>
                   <Select.Option value="Grup">Grup</Select.Option>
                   <Select.Option value="Koko">Koko</Select.Option>
                   <Select.Option value="Admin">Admin</Select.Option>

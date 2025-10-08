@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Input, Space } from "antd";
+import { Table, Button, Input, Space, Select, InputNumber } from "antd";
 import { reportRecall } from "../../service/endPoint";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
 import ReactExport from "react-export-excel-hot-fix";
@@ -7,6 +7,7 @@ import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 const ExcelFile = ReactExport.ExcelFile;
 const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
 const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
+const { Option } = Select;
 
 const Recall = () => {
   const [data, setData] = useState([]);
@@ -16,7 +17,8 @@ const Recall = () => {
   const [filters, setFilters] = useState({
     invoice: "",
     customer: "",
-    recall: "all",
+    totalCallValue: "all",
+    totalCallOperator: "=",
   });
 
   const columns = [
@@ -95,14 +97,23 @@ const Recall = () => {
       const filtered = data.filter((item) => {
         const invoice = filters.invoice || "";
         const customer = filters.customer_name || "";
-        const recall = filters.recall || "all";
+        const totalRecall = filters.totalCallValue || "all";
+        const operator = filters.totalCallOperator || "=";
+
         const invoiceMatch = item.invoice
           .toLowerCase()
           .includes(invoice.toLowerCase());
         const customerMatch = item.customer_name
           .toLowerCase()
           .includes(customer.toLowerCase());
-        const recallMatch = recall != "all" ? item.recall == recall : true;
+        let recallMatch = true;
+        if (totalRecall != "all") {
+          if (operator == "=") recallMatch = item.recall == totalRecall;
+          if (operator == ">=") recallMatch = item.recall >= totalRecall;
+          if (operator == ">") recallMatch = item.recall > totalRecall;
+          if (operator == "<=") recallMatch = item.recall <= totalRecall;
+          if (operator == "<") recallMatch = item.recall < totalRecall;
+        }
 
         return invoiceMatch && customerMatch && recallMatch;
       });
@@ -116,6 +127,23 @@ const Recall = () => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
+
+  const selectBefore = (
+    <Select
+      defaultValue="="
+      style={{ width: 70 }}
+      value={filters.totalCallOperator}
+      onChange={(value) =>
+        handleFilterChange({ target: { name: "totalCallOperator", value } })
+      }
+    >
+      <Option value=">="> {">="} </Option>
+      <Option value=">"> {">"} </Option>
+      <Option value="="> {"="} </Option>
+      <Option value="<="> {"<="} </Option>
+      <Option value="<"> {"<"}</Option>
+    </Select>
+  );
 
   return (
     <div
@@ -134,40 +162,57 @@ const Recall = () => {
             alignItems: "center",
           }}
         >
-          <Input
-            placeholder="Customer Name"
-            style={{ width: 200 }}
-            value={filters.customer_name}
-            onChange={(e) =>
-              handleFilterChange({
-                target: { name: "customer_name", value: e.target.value },
-              })
-            }
-          />
-          <Input
-            placeholder="Invoice Number"
-            style={{ width: 200 }}
-            value={filters.invoice}
-            onChange={(e) =>
-              handleFilterChange({
-                target: { name: "invoice", value: e.target.value },
-              })
-            }
-          />
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Customer Name:</label>
+            <Input
+              placeholder="Customer Name"
+              style={{ width: 200 }}
+              value={filters.customer_name}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "customer_name", value: e.target.value },
+                })
+              }
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Invoice Number:</label>
+            <Input
+              placeholder="Invoice Number"
+              style={{ width: 200 }}
+              value={filters.invoice}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "invoice", value: e.target.value },
+                })
+              }
+            />
+          </div>
 
-          <Input
-            type="number"
-            placeholder="Total Call"
-            style={{ width: 200 }}
-            value={filters.recall}
-            onChange={(e) =>
-              handleFilterChange({
-                target: { name: "recall", value: e.target.value },
-              })
-            }
-          />
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Total Call:</label>
+            <div style={{ display: "flex" }}>
+              <InputNumber
+                addonBefore={selectBefore}
+                type="number"
+                placeholder="Value"
+                style={{ width: 200 }}
+                value={filters.totalCallValue}
+                onChange={(value) =>
+                  handleFilterChange({
+                    target: { name: "totalCallValue", value },
+                  })
+                }
+              />
+            </div>
+          </div>
 
-          <Button type="primary" onClick={getData} icon={<SearchOutlined />}>
+          <Button
+            type="primary"
+            style={{ marginTop: 25 }}
+            onClick={getData}
+            icon={<SearchOutlined />}
+          >
             Search
           </Button>
           <ExcelFile
@@ -181,6 +226,7 @@ const Recall = () => {
                   backgroundColor: "#25D366",
                   borderColor: "#25D366",
                   color: "white",
+                  marginTop: 25,
                 }}
               >
                 Export
