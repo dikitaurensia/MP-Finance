@@ -44,7 +44,7 @@ a {
   width: 120px;
 }
 
-.kanban>.logo {
+.kanban > .logo {
   -ms-grid-row: 1;
   -ms-grid-column: 1;
 }
@@ -64,7 +64,6 @@ a {
   //   "logo header" var(--logoHeader) "sidebar" var(--sidebarNav) "sidebar main" auto
   //   / minmax(auto, 120px) minmax(290px, 1920);
 }
-
 
 .site-page-header {
   border: 1px solid rgb(235, 237, 240);
@@ -92,7 +91,7 @@ a {
 }
 
 .btn-open-portfolio {
-  padding: .2em 1em;
+  padding: 0.2em 1em;
   background-color: #65b6f7;
   border-radius: 4px;
   border-color: #65b6f7;
@@ -125,7 +124,7 @@ a {
   align-items: center;
 }
 
-.map-dashboard>div {
+.map-dashboard > div {
   width: 100% !important;
   height: calc(100vh - var(--sidebarNav)) !important;
 }
@@ -163,7 +162,7 @@ a {
   background-color: #574c88b9;
 }
 
-@media(max-width: 450px) {
+@media (max-width: 450px) {
   .ic-attendance {
     display: inline-block !important;
   }
@@ -185,24 +184,24 @@ a {
   }
 
   .btn-attendance {
-    >.label-btn {
+    > .label-btn {
       display: none;
     }
   }
 
   .btn-pick-courier {
-    >.label-btn {
+    > .label-btn {
       display: none;
     }
   }
 
   .btn-delete-courier {
-    >.label-btn {
+    > .label-btn {
       display: none;
     }
   }
 
-  .kanban>.logo {
+  .kanban > .logo {
     -ms-grid-row: 1;
     -ms-grid-column: 1;
   }
@@ -279,15 +278,24 @@ a {
 }
 
 .scan-button {
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
 }
 
 .input-button {
-  background-color: #FFC107;
+  background-color: #ffc107;
   color: black;
 }
 
+.striped-row > td {
+  background-color: #f7f7f7 !important; /* A light grey for contrast */
+}
+
+.custom-hover-row:hover > td {
+  /* Set your desired hover color */
+  background-color: #e6f7ff !important; /* A light blue shade, commonly used for hover */
+  /* Using !important is often necessary to override Ant Design's default hover style */
+}
 // /* Table container */
 // .ant-table-wrapper {
 //   background: #fff;

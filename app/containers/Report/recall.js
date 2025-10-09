@@ -181,6 +181,7 @@ const Recall = () => {
               placeholder="Invoice Number"
               style={{ width: 200 }}
               value={filters.invoice}
+              min={0}
               onChange={(e) =>
                 handleFilterChange({
                   target: { name: "invoice", value: e.target.value },
@@ -252,8 +253,9 @@ const Recall = () => {
             showSizeChanger: true,
             defaultPageSize: 50,
           }}
-          bordered
+          // bordered
           scroll={{ x: 1000 }}
+          rowClassName={() => "custom-hover-row"}
         />
       </Space>
     </div>

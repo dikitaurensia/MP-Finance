@@ -81,12 +81,14 @@ const Outstanding = () => {
       dataIndex: "transDateView",
       key: "transDateView",
       width: 180,
+      sorter: (a, b) => new Date(a.transDateView) - new Date(b.transDateView),
     },
     {
       title: "Due Date",
       dataIndex: "dueDateView",
       key: "dueDateView",
       width: 180,
+      sorter: (a, b) => new Date(a.dueDateView) - new Date(b.dueDateView),
     },
   ];
 
@@ -114,7 +116,16 @@ const Outstanding = () => {
       title: "Total Amount",
       dataIndex: "totalAmount",
       key: "totalAmount",
-      width: 200,
+      width: 150,
+      render: (value) => (
+        <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
+      ),
+    },
+    {
+      title: "Outstanding",
+      dataIndex: "primeOwing",
+      key: "primeOwing",
+      width: 150,
       render: (value) => (
         <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
       ),
@@ -150,14 +161,14 @@ const Outstanding = () => {
 
     const queryInvoiceDate =
       filterInvoiceDate[0] && filterInvoiceDate[1]
-        ? `&transDateFilter=${encodeURIComponent(tempInvoiceDate)}`
+        ? `&transDateFilter=${encodeURI(tempInvoiceDate)}`
         : "";
 
     while (hasMore) {
       const body = {
         session,
         token,
-        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&outstandingFilter=true&sp.pageSize=100&sp.page=${page}${queryDueDate}${queryInvoiceDate}`,
+        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount,primeOwing&outstandingFilter=true&sp.pageSize=100&sp.page=${page}${queryDueDate}${queryInvoiceDate}`,
       };
       const response = await getDataFromAccurate(body);
       const data = response.d || [];
@@ -201,7 +212,7 @@ const Outstanding = () => {
       invoices.reduce((acc, invoice) => {
         const {
           customer_name,
-          totalAmount,
+          primeOwing,
           dueDateView,
           transDateView,
         } = invoice;
@@ -216,7 +227,7 @@ const Outstanding = () => {
           };
         }
 
-        acc[customer_name].totalOutstanding += totalAmount;
+        acc[customer_name].totalOutstanding += primeOwing;
         acc[customer_name].totalInvoice += 1;
 
         if (
@@ -288,6 +299,7 @@ const Outstanding = () => {
         columns={columnsExpand}
         dataSource={inTable}
         pagination={false}
+        rowClassName={() => "custom-hover-row"}
       />
     );
   };
@@ -404,18 +416,20 @@ const Outstanding = () => {
           columns={columns}
           dataSource={filteredData}
           loading={isLoading}
-          pagination={{
-            pageSizeOptions: ["50", "100"],
-            showSizeChanger: true,
-            defaultPageSize: 100,
-          }}
-          bordered
+          // pagination={{
+          //   pageSizeOptions: ["50", "100"],
+          //   showSizeChanger: true,
+          //   defaultPageSize: 100,
+          // }}
+          pagination={false}
+          // bordered
           scroll={{ x: 1000 }}
           rowKey="customer_name"
           expandable={{
             expandedRowRender: expandedRow,
             rowExpandable: (record) => record.customer_name !== null,
           }}
+          rowClassName={() => "custom-hover-row"}
         />
       </Space>
     </div>

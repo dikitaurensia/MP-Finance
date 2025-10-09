@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Button,
   PageHeader,
   Select,
-  Spin,
   Modal,
   DatePicker,
   Card,
@@ -13,6 +12,7 @@ import {
   Input,
   List,
   Avatar,
+  InputNumber,
 } from "antd";
 import {
   get,
@@ -34,7 +34,6 @@ import {
 import "../../assets/base.scss";
 import moment from "moment-timezone";
 
-import { debounce } from "lodash";
 import {
   FORMAT_DATE_FULL,
   FORMAT_DATE_FILTER_ACC,
@@ -42,15 +41,15 @@ import {
 } from "../../helper/constanta";
 
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 const { confirm } = Modal;
 
 const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(0);
   const [selectStatus, setSelectStatus] = useState("true");
-  const [selectCustomers, setSelectCustomers] = useState("");
+  const [selectCustomer, setSelectCustomer] = useState("");
   const [selectBilledBy, setSelectBilledBy] = useState([]);
 
-  const [dataCustomers, setDataCustomers] = useState([]);
   const [dataWhatsappMap, setdataWhatsappMap] = useState(new Map());
   const [databases, setDatabases] = useState([]);
   const [loadingTable, setLoadingTable] = useState(false);
@@ -58,18 +57,10 @@ const SalesInvoiceTable = () => {
 
   const [filteredData, setFilteredData] = useState([]);
 
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 100,
-  });
   const [selectedRows, setSelectedRows] = useState([]);
-  const [sortedInfo, setSortedInfo] = useState({});
 
-  // State for infinite scroll and search on customer filter
-  const [loadingCustomers, setLoadingCustomers] = useState(false);
-  const [customerPage, setCustomerPage] = useState(1);
-  const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
-  const [customerSearchKeyword, setCustomerSearchKeyword] = useState("");
+  const [totalCallOperator, setTotalCallOperator] = useState(">=");
+  const [totalCallValue, setTotalCallValue] = useState(0);
 
   // State for modal recall
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -151,7 +142,7 @@ const SalesInvoiceTable = () => {
       width: 50,
       fixed: "left",
       render: (value, item, index) => {
-        return (pagination.current - 1) * pagination.pageSize + index + 1;
+        return index + 1;
       },
     },
     {
@@ -177,6 +168,7 @@ const SalesInvoiceTable = () => {
           </Button>
         </Space>
       ),
+      sorter: (a, b) => (a.totalCall || 0) - (b.totalCall || 0),
     },
 
     {
@@ -184,10 +176,6 @@ const SalesInvoiceTable = () => {
       dataIndex: "customerName",
       key: "customerName",
       width: 250,
-      // sorter: true,
-      // sortOrder:
-      //   sortedInfo.columnKey === "customerName" ? sortedInfo.order : null,
-      // showSorterTooltip: false,
       sorter: (a, b) => a.customerName.localeCompare(b.customerName),
       fixed: "left",
     },
@@ -205,6 +193,7 @@ const SalesInvoiceTable = () => {
           {value}
         </Button>
       ),
+      sorter: (a, b) => a.number.localeCompare(b.number),
     },
     {
       title: "Invoice Date",
@@ -212,11 +201,6 @@ const SalesInvoiceTable = () => {
       key: "transDateView",
       width: 150,
       sorter: (a, b) => new Date(a.transDate) - new Date(b.transDate),
-
-      // sorter: true,
-      // sortOrder:
-      //   sortedInfo.columnKey === "transDateView" ? sortedInfo.order : null,
-      // showSorterTooltip: false,
     },
     {
       title: "Due Date",
@@ -226,6 +210,7 @@ const SalesInvoiceTable = () => {
       render: (value, record) => (
         <div style={{ color: record.colorWarning }}>{value}</div>
       ),
+      sorter: (a, b) => new Date(a.dueDate) - new Date(b.dueDate),
     },
     {
       title: "Total Amount",
@@ -235,12 +220,24 @@ const SalesInvoiceTable = () => {
       render: (value) => (
         <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
       ),
+      sorter: (a, b) => a.totalAmount - b.totalAmount,
+    },
+    {
+      title: "Outstanding",
+      dataIndex: "primeOwing",
+      key: "primeOwing",
+      width: 150,
+      render: (value) => (
+        <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
+      ),
+      sorter: (a, b) => a.primeOwing - b.primeOwing,
     },
     {
       title: "Billed by",
       dataIndex: "billedBy",
       key: "billedBy",
       width: 100,
+      sorter: (a, b) => a.billedBy.localeCompare(b.billedBy),
     },
     {
       title: "Handphone",
@@ -314,7 +311,6 @@ const SalesInvoiceTable = () => {
   // --- Data Fetching Logic ---
   const getData = async () => {
     setLoadingTable(true);
-    const { current, pageSize } = pagination;
     const db = databases.find((x) => x.id === selectDB);
 
     if (!db) {
@@ -328,14 +324,6 @@ const SalesInvoiceTable = () => {
     if (selectStatus !== "") {
       queryStatus = `&outstandingFilter=${selectStatus}`;
     }
-
-    let queryCustomer = "";
-    // if (selectCustomers.length > 0) {
-    //   const cust = selectCustomers.map((x) => {
-    //     return `{"id": ${x}}`;
-    //   });
-    //   queryCustomer = `&customerFilter=[${encodeURIComponent(cust.join(","))}]`;
-    // }
 
     const tempDueDate = `{"type": "at-date","operator": null,"date": "${
       dueDate[0]
@@ -355,20 +343,6 @@ const SalesInvoiceTable = () => {
         ? `&transDateFilter=${encodeURIComponent(tempInvoiceDate)}`
         : "";
 
-    // Add sorting parameter based on sortedInfo state
-    let querySort = "";
-    if (sortedInfo.order) {
-      const order = sortedInfo.order === "ascend" ? "asc" : "desc";
-      const sortFieldMap = {
-        customerName: "customer.name",
-        transDateView: "transDate",
-      };
-      const sortField = sortFieldMap[sortedInfo.columnKey];
-      if (sortField) {
-        querySort = `&sp.sort=${sortField}|${order}`;
-      }
-    }
-
     let allData = [];
     let page = 1;
     let hasMore = true;
@@ -376,7 +350,7 @@ const SalesInvoiceTable = () => {
       const body = {
         session,
         token,
-        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${page}${queryStatus}${queryCustomer}${querySort}${queryDueDate}${queryInvoiceDate}`,
+        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount,primeOwing&sp.pageSize=100&sp.page=${page}${queryStatus}${queryDueDate}${queryInvoiceDate}`,
       };
       const response = await getDataFromAccurate(body);
       const data = response.d || [];
@@ -389,16 +363,7 @@ const SalesInvoiceTable = () => {
       }
     }
 
-    // const body = {
-    //   session,
-    //   token,
-    //   api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount&sp.pageSize=${pageSize}&sp.page=${current}${queryStatus}${queryCustomer}${querySort}${queryDueDate}${queryInvoiceDate}`,
-    // };
-
     try {
-      // const response = await getDataFromAccurate(body);
-      // const data = response.d || [];
-
       const invoices = allData.map((x) => x.number);
 
       const masterData = allData.map((x) => {
@@ -419,7 +384,7 @@ const SalesInvoiceTable = () => {
 
         const wa = dataWhatsappMap.get(x.customer.name) || {};
 
-        const callHistory = callHistoriesMap.get(x.number) || {};
+        const callHistory = callHistoriesMap.get(x.number) || { total: 0 };
 
         return {
           ...x,
@@ -437,15 +402,6 @@ const SalesInvoiceTable = () => {
           lastCall: callHistory.lastCall,
         };
       });
-
-      // let filteredMasterData = masterData;
-      // if (selectBilledBy.length !== 0) {
-      //   filteredMasterData = masterData.filter((x) =>
-      //     selectBilledBy.some((b) =>
-      //       x.billedBy.toLowerCase().includes(b.toLowerCase())
-      //     )
-      //   );
-      // }
 
       setDataSource(masterData);
       setFilteredData(masterData);
@@ -527,88 +483,10 @@ const SalesInvoiceTable = () => {
     }
   };
 
-  // --- Customers Fetch ---
-  const getCustomers = async (
-    page = 1,
-    keyword = "",
-    databasesArray,
-    selDB
-  ) => {
-    // <-- Added databasesArray parameter
-    if (loadingCustomers) return;
-
-    if (keyword !== customerSearchKeyword) {
-      setDataCustomers([]);
-      setCustomerPage(1);
-      setHasMoreCustomers(true);
-    }
-
-    if (!hasMoreCustomers && keyword === customerSearchKeyword) return;
-
-    setLoadingCustomers(true);
-    const db = databasesArray.find((x) => x.id == selDB); // <-- Use the new parameter
-    if (!db) {
-      setLoadingCustomers(false);
-      return;
-    }
-
-    const { token, host, session } = db;
-    const pageSize = 100;
-    const body = {
-      session,
-      token,
-      api_url: `${host}/accurate/api/customer/list.do?fields=id,name&sp.pageSize=${pageSize}&sp.page=${page}${
-        keyword
-          ? `&filter.keywords.op=CONTAIN&filter.keywords.val=${encodeURIComponent(
-              keyword
-            )}`
-          : ""
-      }`,
-    };
-
-    try {
-      const response = await getDataFromAccurate(body);
-      const newCustomers = (response.d || []).map((customer) => ({
-        id: customer.id,
-        name: customer.name,
-        whatsapp: customer.mobilePhone || customer.mobilePhone2 || "",
-      }));
-
-      setDataCustomers((prev) => [...prev, ...newCustomers]);
-
-      if (newCustomers.length < pageSize) {
-        setHasMoreCustomers(false);
-      }
-      setCustomerPage(page + 1);
-      setCustomerSearchKeyword(keyword);
-    } catch (error) {
-      ErrorMessage(error);
-      setHasMoreCustomers(false);
-    } finally {
-      setLoadingCustomers(false);
-    }
-  };
-
-  // --- State Change Handlers ---
-  const handleTableChange = (newPagination, filters, sorter) => {
-    setPagination(newPagination);
-    setSortedInfo(sorter);
-  };
-
   const handleDBChange = (value) => {
     setSelectDB(value);
-    setPagination({ current: 1, pageSize: 100 });
-    setSelectCustomers("");
-    setDataCustomers([]);
-    setCustomerPage(1);
-    setHasMoreCustomers(true);
-    setCustomerSearchKeyword("");
+    setSelectCustomer("");
   };
-
-  // const handleCustomerChange = (value) => {
-  //   setSelectCustomers(value);
-  //   setPagination({ current: 1, pageSize: 100 });
-  // };
 
   const handleSelectRows = (selectedRowKeys, selectedRows) => {
     setSelectedRows(selectedRows);
@@ -639,7 +517,7 @@ const SalesInvoiceTable = () => {
         const customerInvoices = invoicesByCustomer[customerName];
 
         const grandTotal = customerInvoices.reduce(
-          (acc, item) => acc + item.totalAmount,
+          (acc, item) => acc + item.primeOwing,
           0
         );
 
@@ -709,7 +587,7 @@ const SalesInvoiceTable = () => {
               (invoice) =>
                 `${counter++}. Faktur penjualan ${
                   invoice.number
-                } - Rp. ${formatCurrency(invoice.totalAmount)}`
+                } - Rp. ${formatCurrency(invoice.primeOwing)}`
             )
             .join("\n");
 
@@ -731,7 +609,7 @@ const SalesInvoiceTable = () => {
           .format(FORMAT_DATE_FULL);
 
         const invoicesToSend = customerInvoices.map((x) => {
-          return { number: x.number, total_amount: x.totalAmount };
+          return { number: x.number, total_amount: x.primeOwing };
         });
 
         await create("call_history", {
@@ -818,37 +696,11 @@ const SalesInvoiceTable = () => {
     }
   };
 
-  // --- Infinite Scroll & Search ---
-  const handleCustomerPopupScroll = (e) => {
-    const { target } = e;
-    const isAtBottom =
-      target.scrollHeight - target.scrollTop === target.clientHeight;
-    if (isAtBottom && !loadingCustomers && hasMoreCustomers) {
-      getCustomers(customerPage, customerSearchKeyword, databases, selectDB); // <-- Pass databases here
-    }
-  };
-
-  const debouncedCustomerSearch = useRef(
-    debounce((value, dbs, sdb) => {
-      getCustomers(1, value, dbs, sdb);
-    }, 500)
-  ).current;
-
-  const handleCustomerSearch = (value) => {
-    debouncedCustomerSearch(value, databases, selectDB); // <-- Pass databases here
-  };
-
   // --- useEffect Hooks ---
   useEffect(() => {
     getDatabase();
     getDataWA();
   }, []);
-
-  useEffect(() => {
-    if (selectDB) {
-      getCustomers(1, "", databases, selectDB);
-    }
-  }, [selectDB, databases]); // <-- Added databases as a dependency
 
   useEffect(() => {
     if (listInvoices) {
@@ -862,34 +714,20 @@ const SalesInvoiceTable = () => {
     }
   }, [
     selectDB,
-    pagination,
     selectStatus,
-    // selectCustomers,
     databases,
     dataWhatsappMap,
     dueDate,
     callHistoriesMap,
     invoiceDate,
-    // selectBilledBy,
   ]);
-
-  // let filteredMasterData = masterData;
-  // if (selectBilledBy.length !== 0) {
-  //   filteredMasterData = masterData.filter((x) =>
-  //     selectBilledBy.some((b) =>
-  //       x.billedBy.toLowerCase().includes(b.toLowerCase())
-  //     )
-  //   );
-  // }
 
   useEffect(() => {
     const applyFilters = () => {
       const filtered = dataSource.filter((item) => {
-        // const customer = filters.customer_name || "";
-
         const customerMatch = item.customerName
           .toLowerCase()
-          .includes(selectCustomers.toLowerCase());
+          .includes(selectCustomer.toLowerCase());
 
         let billedByMatch = true;
         if (selectBilledBy.length !== 0) {
@@ -898,12 +736,30 @@ const SalesInvoiceTable = () => {
           );
         }
 
-        return customerMatch && billedByMatch;
+        let recallMatch = true;
+        if (totalCallOperator == "=")
+          recallMatch = item.totalCall == totalCallValue;
+        if (totalCallOperator == ">=")
+          recallMatch = item.totalCall >= totalCallValue;
+        if (totalCallOperator == ">")
+          recallMatch = item.totalCall > totalCallValue;
+        if (totalCallOperator == "<=")
+          recallMatch = item.totalCall <= totalCallValue;
+        if (totalCallOperator == "<")
+          recallMatch = item.totalCall < totalCallValue;
+
+        return customerMatch && billedByMatch && recallMatch;
       });
       setFilteredData(filtered);
     };
     applyFilters();
-  }, [selectBilledBy, selectCustomers, dataSource]);
+  }, [
+    selectBilledBy,
+    selectCustomer,
+    dataSource,
+    totalCallOperator,
+    totalCallValue,
+  ]);
 
   // --- Render JSX ---
   const rowSelection = {
@@ -947,6 +803,21 @@ const SalesInvoiceTable = () => {
       },
     ],
   };
+
+  const selectBefore = (
+    <Select
+      defaultValue="="
+      style={{ width: 70 }}
+      value={totalCallOperator}
+      onChange={(value) => setTotalCallOperator(value)}
+    >
+      <Option value=">="> {">="} </Option>
+      <Option value=">"> {">"} </Option>
+      <Option value="="> {"="} </Option>
+      <Option value="<="> {"<="} </Option>
+      <Option value="<"> {"<"}</Option>
+    </Select>
+  );
 
   return (
     <React.Fragment>
@@ -1075,35 +946,25 @@ const SalesInvoiceTable = () => {
                 <label style={{ marginBottom: 4 }}>Customer Name:</label>
                 <Input
                   placeholder="Customer Name"
-                  style={{ width: 200 }}
-                  value={selectCustomers}
-                  // onChange={setSelectCustomers}
-                  onChange={(e) => setSelectCustomers(e.target.value)}
+                  style={{ width: 250 }}
+                  value={selectCustomer}
+                  onChange={(e) => setSelectCustomer(e.target.value)}
                 />
-                {/* <Select
-                  mode="multiple"
-                  allowClear
-                  className="customer-select"
-                  placeholder="Choose Customer"
-                  value={selectCustomers}
-                  onChange={handleCustomerChange}
-                  style={{ minWidth: 250 }}
-                  onPopupScroll={handleCustomerPopupScroll}
-                  onSearch={handleCustomerSearch}
-                  filterOption={false}
-                  showSearch
-                >
-                  {dataCustomers.map((item) => (
-                    <Select.Option value={item.id} key={item.id}>
-                      {item.name}
-                    </Select.Option>
-                  ))}
-                  {loadingCustomers && (
-                    <div style={{ textAlign: "center", padding: "10px" }}>
-                      <Spin size="small" />
-                    </div>
-                  )}
-                </Select> */}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Total Call:</label>
+                <div style={{ display: "flex" }}>
+                  <InputNumber
+                    addonBefore={selectBefore}
+                    type="number"
+                    placeholder="Value"
+                    min={0}
+                    style={{ width: 250 }}
+                    value={totalCallValue}
+                    onChange={(value) => setTotalCallValue(value)}
+                  />
+                </div>
               </div>
             </div>
           </Card>
@@ -1116,6 +977,8 @@ const SalesInvoiceTable = () => {
             loading={loadingTable}
             pagination={false}
             rowSelection={rowSelection}
+            scroll={{ x: 1300 }}
+            rowClassName={() => "custom-hover-row"}
           />
         </div>
       </section>
@@ -1135,6 +998,7 @@ const SalesInvoiceTable = () => {
             rowKey="id"
             pagination={false}
             size="small"
+            rowClassName={() => "custom-hover-row"}
           />
         )}
       </Modal>

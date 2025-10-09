@@ -286,8 +286,9 @@ const HistoryCall = () => {
             showSizeChanger: true,
             defaultPageSize: 50,
           }}
-          bordered
+          // bordered
           scroll={{ x: 1000 }}
+          rowClassName={() => "custom-hover-row"}
         />
       </Space>
     </div>
