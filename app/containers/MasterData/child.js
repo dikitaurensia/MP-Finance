@@ -43,24 +43,63 @@ import {
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { confirm } = Modal;
+const form = "master-data-";
+
+const defaultSelectDb = localStorage.getItem(`${form}selectDB`) || 0;
+const defaultSelectStatus =
+  localStorage.getItem(`${form}selectStatus`) || "true";
+const defaultSelectCustomer =
+  localStorage.getItem(`${form}selectCustomer`) || "";
+const defaultSelectBilledBy = localStorage.getItem(`${form}selectBilledBy`)
+  ? localStorage.getItem(`${form}selectBilledBy`).split(",")
+  : [];
+const defaultTotalCallOperator =
+  localStorage.getItem(`${form}totalCallOperator`) || ">=";
+const defaultTotalCallValue =
+  localStorage.getItem(`${form}totalCallValue`) || 0;
+const defaultDueDate = localStorage.getItem(`${form}dueDate`)
+  ? localStorage.getItem(`${form}dueDate`).split(",")
+  : [
+      moment()
+        .clone()
+        .startOf("month")
+        .format(FORMAT_DATE_FILTER_ACC),
+      moment().format(FORMAT_DATE_FILTER_ACC),
+    ];
+const defaultInvoiceDate = localStorage.getItem(`${form}invoiceDate`)
+  ? localStorage.getItem(`${form}invoiceDate`).split(",")
+  : [
+      moment()
+        .clone()
+        .startOf("month")
+        .format(FORMAT_DATE_FILTER_ACC),
+      moment().format(FORMAT_DATE_FILTER_ACC),
+    ];
 
 const SalesInvoiceTable = () => {
-  const [selectDB, setSelectDB] = useState(0);
-  const [selectStatus, setSelectStatus] = useState("true");
-  const [selectCustomer, setSelectCustomer] = useState("");
-  const [selectBilledBy, setSelectBilledBy] = useState([]);
+  // filter
+  const [selectDB, setSelectDB] = useState(defaultSelectDb);
+  const [selectStatus, setSelectStatus] = useState(defaultSelectStatus);
+  const [selectCustomer, setSelectCustomer] = useState(defaultSelectCustomer);
+  const [selectBilledBy, setSelectBilledBy] = useState(defaultSelectBilledBy);
+  const [totalCallOperator, setTotalCallOperator] = useState(
+    defaultTotalCallOperator
+  );
+  const [totalCallValue, setTotalCallValue] = useState(defaultTotalCallValue);
+  const [dueDate, setDueDate] = useState(defaultDueDate);
+  const [invoiceDate, setInvoiceDate] = useState(defaultInvoiceDate);
 
+  //data
   const [dataWhatsappMap, setdataWhatsappMap] = useState(new Map());
   const [databases, setDatabases] = useState([]);
-  const [loadingTable, setLoadingTable] = useState(false);
   const [dataSource, setDataSource] = useState([]);
-
   const [filteredData, setFilteredData] = useState([]);
-
   const [selectedRows, setSelectedRows] = useState([]);
+  const [callHistoriesMap, setCallHistoriesMap] = useState(new Map());
+  const [listInvoices, setListInvoices] = useState([]);
 
-  const [totalCallOperator, setTotalCallOperator] = useState(">=");
-  const [totalCallValue, setTotalCallValue] = useState(0);
+  //loading
+  const [loadingTable, setLoadingTable] = useState(false);
 
   // State for modal recall
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,25 +108,6 @@ const SalesInvoiceTable = () => {
   // State for modal edit phone number
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
-
-  const [dueDate, setDueDate] = useState([
-    moment()
-      .clone()
-      .startOf("month")
-      .format(FORMAT_DATE_FILTER_ACC),
-    moment().format(FORMAT_DATE_FILTER_ACC),
-  ]);
-
-  const [invoiceDate, setInvoiceDate] = useState([
-    moment()
-      .clone()
-      .startOf("month")
-      .format(FORMAT_DATE_FILTER_ACC),
-    moment().format(FORMAT_DATE_FILTER_ACC),
-  ]);
-
-  const [callHistoriesMap, setCallHistoriesMap] = useState(new Map());
-  const [listInvoices, setListInvoices] = useState([]);
 
   const handleOpenModal = (record) => {
     setSelectedRecord(record);
@@ -127,6 +147,80 @@ const SalesInvoiceTable = () => {
       SuccessMessage("Update phone number successful");
     }
   };
+
+  const saveFilterLocal = () => {
+    localStorage.setItem(`${form}selectDB`, selectDB);
+    localStorage.setItem(`${form}selectStatus`, selectStatus);
+    localStorage.setItem(`${form}selectCustomer`, selectCustomer);
+    localStorage.setItem(`${form}selectBilledBy`, selectBilledBy);
+    localStorage.setItem(`${form}totalCallOperator`, totalCallOperator);
+    localStorage.setItem(`${form}totalCallValue`, totalCallValue);
+    localStorage.setItem(`${form}dueDate`, dueDate);
+    localStorage.setItem(`${form}invoiceDate`, invoiceDate);
+  };
+
+  // const loadFilterLocal = () => {
+  //   const compareAndSet = (
+  //     localValue,
+  //     currentValue,
+  //     setState,
+  //     isArray = false
+  //   ) => {
+  //     if (localValue == null) return;
+  //     const parsedValue = isArray ? localValue.split(",") : localValue;
+
+  //     // hanya set state jika beda dari nilai sekarang
+  //     const isDifferent = isArray
+  //       ? JSON.stringify(parsedValue) !== JSON.stringify(currentValue)
+  //       : parsedValue !== currentValue;
+
+  //     if (isDifferent) setState(parsedValue);
+  //   };
+
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}selectDB`),
+  //     selectDB,
+  //     setSelectDB
+  //   );
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}selectStatus`),
+  //     selectStatus,
+  //     setSelectStatus
+  //   );
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}selectCustomer`),
+  //     selectCustomer,
+  //     setSelectCustomer
+  //   );
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}selectBilledBy`),
+  //     selectBilledBy,
+  //     setSelectBilledBy,
+  //     true
+  //   );
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}totalCallOperator`),
+  //     totalCallOperator,
+  //     setTotalCallOperator
+  //   );
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}totalCallValue`),
+  //     totalCallValue,
+  //     setTotalCallValue
+  //   );
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}dueDate`),
+  //     dueDate,
+  //     setDueDate,
+  //     true
+  //   );
+  //   compareAndSet(
+  //     localStorage.getItem(`${form}invoiceDate`),
+  //     invoiceDate,
+  //     setInvoiceDate,
+  //     true
+  //   );
+  // };
 
   // Handle changes to filter inputs
   const handleValueEditChange = (e) => {
@@ -420,6 +514,7 @@ const SalesInvoiceTable = () => {
       ErrorMessage(error);
     } finally {
       setLoadingTable(false);
+      saveFilterLocal();
     }
   };
 
@@ -428,8 +523,10 @@ const SalesInvoiceTable = () => {
     try {
       const response = await get(tableName);
       setDatabases(response.data);
-      if (response.data.length > 0) {
-        setSelectDB(response.data[0].id);
+      if (response.data.length > 0 && selectDB == 0) {
+        const selDB = localStorage.getItem(`${form}selectDB`);
+        const val = selDB > 0 ? selDB : response.data[0].id;
+        setSelectDB(val);
       }
     } catch (error) {
       ErrorMessage(error);
@@ -485,7 +582,7 @@ const SalesInvoiceTable = () => {
 
   const handleDBChange = (value) => {
     setSelectDB(value);
-    setSelectCustomer("");
+    // setSelectCustomer("");
   };
 
   const handleSelectRows = (selectedRowKeys, selectedRows) => {
@@ -700,6 +797,7 @@ const SalesInvoiceTable = () => {
   useEffect(() => {
     getDatabase();
     getDataWA();
+    // loadFilterLocal();
   }, []);
 
   useEffect(() => {
@@ -722,36 +820,38 @@ const SalesInvoiceTable = () => {
     invoiceDate,
   ]);
 
+  const applyFilters = () => {
+    const filtered = dataSource.filter((item) => {
+      const customerMatch = item.customerName
+        .toLowerCase()
+        .includes(selectCustomer.toLowerCase());
+
+      let billedByMatch = true;
+      if (selectBilledBy.length !== 0) {
+        billedByMatch = selectBilledBy.some((b) =>
+          item.billedBy.toLowerCase().includes(b.toLowerCase())
+        );
+      }
+
+      let recallMatch = true;
+      if (totalCallOperator == "=")
+        recallMatch = item.totalCall == totalCallValue;
+      if (totalCallOperator == ">=")
+        recallMatch = item.totalCall >= totalCallValue;
+      if (totalCallOperator == ">")
+        recallMatch = item.totalCall > totalCallValue;
+      if (totalCallOperator == "<=")
+        recallMatch = item.totalCall <= totalCallValue;
+      if (totalCallOperator == "<")
+        recallMatch = item.totalCall < totalCallValue;
+
+      return customerMatch && billedByMatch && recallMatch;
+    });
+    setFilteredData(filtered);
+    saveFilterLocal();
+  };
+
   useEffect(() => {
-    const applyFilters = () => {
-      const filtered = dataSource.filter((item) => {
-        const customerMatch = item.customerName
-          .toLowerCase()
-          .includes(selectCustomer.toLowerCase());
-
-        let billedByMatch = true;
-        if (selectBilledBy.length !== 0) {
-          billedByMatch = selectBilledBy.some((b) =>
-            item.billedBy.toLowerCase().includes(b.toLowerCase())
-          );
-        }
-
-        let recallMatch = true;
-        if (totalCallOperator == "=")
-          recallMatch = item.totalCall == totalCallValue;
-        if (totalCallOperator == ">=")
-          recallMatch = item.totalCall >= totalCallValue;
-        if (totalCallOperator == ">")
-          recallMatch = item.totalCall > totalCallValue;
-        if (totalCallOperator == "<=")
-          recallMatch = item.totalCall <= totalCallValue;
-        if (totalCallOperator == "<")
-          recallMatch = item.totalCall < totalCallValue;
-
-        return customerMatch && billedByMatch && recallMatch;
-      });
-      setFilteredData(filtered);
-    };
     applyFilters();
   }, [
     selectBilledBy,
@@ -966,6 +1066,9 @@ const SalesInvoiceTable = () => {
                   />
                 </div>
               </div>
+              <Button type="primary" onClick={applyFilters}>
+                Apply Filter
+              </Button>
             </div>
           </Card>
           <Table
