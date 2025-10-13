@@ -1,10 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  EditOutlined,
-  EllipsisOutlined,
-  SettingOutlined,
-  WhatsAppOutlined,
-} from "@ant-design/icons";
+import React, { useState } from "react";
+import { EditOutlined, WhatsAppOutlined } from "@ant-design/icons";
 
 import {
   PageHeader,
@@ -12,39 +7,71 @@ import {
   Card,
   Row,
   Col,
-  Avatar,
-  Layout,
   Input,
   Typography,
   Space,
+  Tag,
+  Button,
 } from "antd";
 import "../../assets/base.scss";
 const { Meta } = Card;
+const { TextArea } = Input;
+const { Paragraph, Text, Title } = Typography;
 
-const desc = `Dengan hormat bagian keuangan Mario Mutiara Palem,
-
+// --- Konten Default Template (Disesuaikan untuk 3 Jenis) ---
+const initialHeader = `Dengan hormat bagian keuangan Mario Mutiara Palem,
 Terima kasih atas kerjasama bisnis dengan anda.
 
 Berikut adalah daftar faktur penjualan yang telah diterbitkan:
+Faktur yang sudah/ akan jatuh tempo`;
 
-Faktur yang sudah/ akan jatuh tempo
-•   Tanggal : *04 Oct 2025*
+const initialBody = `•   Tanggal : *04 Oct 2025*
 1.⁠ ⁠Faktur penjualan BLIN-1025-0016 - Rp. 1.950.000
 
 *Total Invoice: Rp. 1.950.000*
-
 Pembayaran transfer ke Bank BCA: *BOSS LAKBAN INDONESIA, CV* Dengan no : *2118888028*
 
 Terlampir link dokumen invoice dibawah ini:
+https://pay.mitranpack.com/?q=Ym9zczo1NTQwMg==`;
 
-https://pay.mitranpack.com/?q=Ym9zczo1NTQwMg==
-
-Terima Kasih,
+const initialFooter = `Terima Kasih,
 CV. Boss Lakban Indonesia`;
 
-const { Content } = Layout;
-const { TextArea } = Input;
-const { Title, Paragraph, Text } = Typography;
+const defaultTemplates = [
+  {
+    id: "h-2",
+    name: "Template H-2",
+    description: "Pengingat pembayaran 2 hari sebelum jatuh tempo.",
+    tagColor: "blue",
+    header: initialHeader,
+    body: initialBody.replace("*04 Oct 2025*", "*{{tanggal_2_hari_lagi}}*"),
+    footer: initialFooter,
+  },
+  {
+    id: "due-date",
+    name: "Template Jatuh Tempo",
+    description: "Pengingat pembayaran tepat pada hari jatuh tempo.",
+    tagColor: "gold",
+    header: initialHeader,
+    body: initialBody.replace("*04 Oct 2025*", "*{{tanggal_jatuh_tempo}}*"),
+    footer: initialFooter,
+  },
+  {
+    id: "warning",
+    name: "Template Peringatan",
+    description: "Peringatan pembayaran untuk faktur yang sudah terlambat.",
+    tagColor: "red",
+    header: initialHeader.replace(
+      "Terima kasih atas kerjasama bisnis dengan anda.",
+      "Kami mengingatkan Anda terkait keterlambatan pembayaran."
+    ),
+    body: initialBody.replace(
+      "*04 Oct 2025*",
+      "*{{tanggal_jatuh_tempo_asli}}*"
+    ),
+    footer: initialFooter,
+  },
+];
 
 const WhatsAppPreview = ({ message }) => {
   // Fungsi untuk memformat teks (Bold, Italic, Strikethrough, dan Enter)
@@ -60,16 +87,14 @@ const WhatsAppPreview = ({ message }) => {
       let lastIndex = 0;
 
       // Regular Expression untuk menangkap SEMUA markup: *bold*, _italic_, ~strikethrough~
-      // Gabungkan semua pola menjadi satu RegEx
       const allMarkupRegex = /(\*|_|~)(.*?)\1/g;
-
       let match;
 
-      // Proses per baris untuk menemukan markup
+      // Process line to find markup
       while ((match = allMarkupRegex.exec(remainingText)) !== null) {
         const [fullMatch, delimiter, content] = match;
 
-        // Tambahkan teks biasa sebelum markup
+        // Add plain text before the markup
         if (match.index > lastIndex) {
           elements.push(
             <Text key={`text-pre-${lineIndex}-${lastIndex}`}>
@@ -78,20 +103,17 @@ const WhatsAppPreview = ({ message }) => {
           );
         }
 
-        // Tentukan styling berdasarkan delimiter
+        // Determine styling based on delimiter
         let styleProps = {};
         if (delimiter === "*") {
-          // Bold
           styleProps = { strong: true };
         } else if (delimiter === "_") {
-          // Italic
           styleProps = { italic: true };
         } else if (delimiter === "~") {
-          // Strikethrough
           styleProps = { delete: true };
         }
 
-        // Tambahkan elemen teks dengan styling yang sesuai
+        // Add the styled text element
         elements.push(
           <Text key={`styled-${lineIndex}-${match.index}`} {...styleProps}>
             {content}
@@ -101,7 +123,7 @@ const WhatsAppPreview = ({ message }) => {
         lastIndex = match.index + fullMatch.length;
       }
 
-      // Tambahkan sisa teks setelah markup terakhir
+      // Add remaining text after the last markup
       if (lastIndex < remainingText.length) {
         elements.push(
           <Text key={`text-end-${lineIndex}-${lastIndex}`}>
@@ -110,8 +132,7 @@ const WhatsAppPreview = ({ message }) => {
         );
       }
 
-      // Mengembalikan elemen div untuk satu baris.
-      // minHeight memastikan baris kosong terlihat sebagai enter.
+      // Return a div for one line. minHeight ensures empty lines appear as breaks.
       return (
         <div
           key={`line-${lineIndex}`}
@@ -150,8 +171,87 @@ const WhatsAppPreview = ({ message }) => {
   );
 };
 
+const EditorSection = ({
+  title,
+  value,
+  onChange,
+  placeholder,
+  rows = 5,
+  disabled = false,
+}) => (
+  <Card
+    title={
+      <Text strong style={{ fontSize: "1.05em" }}>
+        {title}
+      </Text>
+    }
+    bodyStyle={{ padding: 12 }}
+    style={{
+      marginBottom: 15,
+      borderRadius: 6,
+      borderLeft: "3px solid #16a34a",
+    }}
+  >
+    <TextArea
+      rows={rows}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      style={{
+        minHeight: "auto",
+        border: "1px solid #e0e0e0",
+        borderRadius: 4,
+      }}
+      disabled={disabled}
+    />
+  </Card>
+);
+
 const Template = () => {
-  const [template, setTemplate] = useState(desc);
+  const [templates, setTemplates] = useState(defaultTemplates);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+  // State untuk menyimpan perubahan sementara di modal
+  const [editorHeader, setEditorHeader] = useState("");
+  const [editorBody, setEditorBody] = useState("");
+  const [editorFooter, setEditorFooter] = useState("");
+
+  // Handle pembukaan modal
+  const handleEdit = (template) => {
+    setSelectedTemplate(template);
+    setEditorHeader(template.header);
+    setEditorBody(template.body);
+    setEditorFooter(template.footer);
+    setIsModalVisible(true);
+  };
+
+  // Handle penyimpanan template dari modal
+  const handleSave = () => {
+    if (!selectedTemplate) return;
+
+    // 1. Perbarui daftar templates
+    const updatedTemplates = templates.map((t) =>
+      t.id === selectedTemplate.id
+        ? {
+            ...t,
+            header: editorHeader,
+            body: editorBody,
+            footer: editorFooter,
+          }
+        : t
+    );
+    setTemplates(updatedTemplates);
+
+    // 2. Tutup modal
+    setIsModalVisible(false);
+    setSelectedTemplate(null);
+  };
+
+  // Gabungkan 3 bagian pesan untuk pratinjau modal
+  const combinedMessage = [editorHeader, editorBody, editorFooter]
+    .filter(Boolean)
+    .join("\n\n");
 
   return (
     <React.Fragment>
@@ -166,79 +266,111 @@ const Template = () => {
 
         <div className="kanban__main-wrapper">
           {/* Grid untuk dua kolom */}
-          <Row gutter={[24, 24]} style={{ flex: 1 }}>
-            {/* Kolom Kiri: Editor */}
-            <Col span={24} md={12}>
-              <Card title="✍️ Editor Template 1">
-                <TextArea
-                  rows={15}
-                  placeholder="Type your message template here.
-Use *text* for bold, _text_ for italic, ~text~ for strikethrough."
-                  value={template}
-                  onChange={(e) => setTemplate(e.target.value)}
-                  style={{ minHeight: 300 }}
-                />
-                <Paragraph type="secondary" style={{ marginTop: 10 }}>
-                  *teks* = <span style={{ fontWeight: "bold" }}>Bold</span>,
-                  _teks_ = <span style={{ fontStyle: "italic" }}>Italic</span>,
-                  ~teks~ = <del>Strikethrough</del>
-                </Paragraph>
-              </Card>
-            </Col>
+          <Row gutter={[24, 24]}>
+            {/* Kolom untuk menampilkan 3 Kartu Template */}
+            {templates.map((template) => (
+              <Col key={template.id} span={24} lg={8}>
+                <Card
+                  title={
+                    <Space direction="vertical" size={2}>
+                      <Text strong>{template.name}</Text>
+                      <Tag color={template.tagColor} style={{ marginTop: 4 }}>
+                        {template.id.toUpperCase()}
+                      </Tag>
+                    </Space>
+                  }
+                  bordered={false}
+                  style={{
+                    borderRadius: 10,
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+                    height: "100%", // Memastikan tinggi kartu sama
+                  }}
+                  actions={[
+                    <Button
+                      type="primary"
+                      icon={<EditOutlined />}
+                      onClick={() => handleEdit(template)}
+                      style={{
+                        width: "90%",
+                        borderRadius: 6,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Edit Template
+                    </Button>,
+                  ]}
+                  bodyStyle={{
+                    minHeight: 80,
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 16,
+                  }}
+                >
+                  <Paragraph style={{ margin: 0 }}>
+                    {template.description}
+                  </Paragraph>
+                </Card>
+              </Col>
+            ))}
+          </Row>
 
-            {/* Kolom Kanan: Pratinjau */}
-            <Col span={24} md={12}>
-              <Card title="📱 Preview">
+          {/* Modal Editor */}
+          <Modal
+            title={
+              <Space>
+                <EditOutlined /> Edit Template:{" "}
+                {selectedTemplate ? selectedTemplate.name : ""}
+              </Space>
+            }
+            open={isModalVisible}
+            onCancel={() => setIsModalVisible(false)}
+            onOk={handleSave}
+            width={"80%"}
+            style={{ top: 20 }}
+            okText="Simpan Perubahan"
+            cancelText="Batal"
+          >
+            <Row gutter={[24, 24]}>
+              <Col span={24} md={12}>
+                <EditorSection
+                  title="1. Header"
+                  value={editorHeader}
+                  onChange={(e) => setEditorHeader(e.target.value)}
+                  placeholder="Masukkan salam pembuka."
+                  rows={10}
+                />
+
+                <EditorSection
+                  title="2. Body"
+                  value={editorBody}
+                  onChange={(e) => setEditorBody(e.target.value)}
+                  placeholder="Masukkan detail, variabel, dan informasi utama."
+                  rows={5}
+                  disabled={true}
+                />
+
+                <EditorSection
+                  title="3. Footer"
+                  value={editorFooter}
+                  onChange={(e) => setEditorFooter(e.target.value)}
+                  placeholder="Masukkan penutup, link dokumen, dan tanda tangan."
+                  rows={5}
+                />
+              </Col>
+
+              <Col span={24} md={12}>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "center",
-                    alignItems: "flex-start",
-                    height: "100%",
+                    paddingTop: 20,
                   }}
                 >
-                  <WhatsAppPreview message={template} />
+                  <WhatsAppPreview message={combinedMessage} />
                 </div>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Catatan: Komponen Content di antd biasanya ada di dalam Layout, 
-          tapi di sini kita gunakan Layout sebagai container utama. */}
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "16px 40px",
-              border: "6px solid #16a34a",
-              borderRadius: "8px",
-              opacity: 0.3,
-              transform: "rotate(-20deg)",
-            }}
-          >
-            <div
-              style={{
-                color: "#16a34a",
-                fontSize: "3.75rem",
-                fontWeight: 800,
-                letterSpacing: "0.1em",
-              }}
-            >
-              COMING SOON
-            </div>
-          </div>
+              </Col>
+            </Row>
+          </Modal>
         </div>
       </section>
     </React.Fragment>
