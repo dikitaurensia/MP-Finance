@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Input, Space, Select, InputNumber } from "antd";
-import { reportRecall } from "../../service/endPoint";
+import {
+  get,
+  getDataFromAccurate,
+  reportRecall,
+  update,
+} from "../../service/endPoint";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
 import ReactExport from "react-export-excel-hot-fix";
-import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  ExportOutlined,
+  SearchOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
 const ExcelFile = ReactExport.ExcelFile;
 const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
 const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
@@ -11,14 +20,17 @@ const { Option } = Select;
 
 const Recall = () => {
   const [data, setData] = useState([]);
+  const [databases, setDatabases] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingSync, setLoadingSync] = useState(false);
   const [filters, setFilters] = useState({
     invoice: "",
     customer: "",
     totalCallValue: "all",
     totalCallOperator: "=",
+    status: "all",
   });
 
   const columns = [
@@ -63,6 +75,13 @@ const Recall = () => {
       ),
       sorter: (a, b) => a.recall - b.recall,
     },
+    {
+      title: "Status",
+      dataIndex: "status_invoice",
+      key: "status_invoice",
+      width: 100,
+      sorter: (a, b) => a.status_invoice.localeCompare(b.status_invoice),
+    },
   ];
 
   const getData = () => {
@@ -88,8 +107,83 @@ const Recall = () => {
       });
   };
 
+  const getStatusInvoice = async () => {
+    try {
+      setLoadingSync(true);
+
+      const { data } = await get("status_invoice");
+      if (!data.length) {
+        console.warn("No invoice data found");
+        return;
+      }
+
+      if (!databases.length) {
+        console.error("Databases list is empty");
+        return;
+      }
+
+      const dbBli = databases.find((x) => x.dbname.includes("Lak"));
+      const dbMitran = databases.find((x) => x.dbname.includes("Mit"));
+
+      const getDb = (invoice) =>
+        invoice.startsWith("BLIN") ? dbBli : dbMitran;
+
+      // Jalankan semua invoice secara paralel
+      await Promise.allSettled(
+        data.map(async (item) => {
+          const { invoice } = item;
+          const db = getDb(invoice);
+
+          if (!db) {
+            console.warn(`Database not found for invoice: ${invoice}`);
+            return;
+          }
+
+          const { token, host, session } = db;
+          const apiUrl = `${host}/accurate/api/sales-invoice/list.do?fields=id,number,statusName&sp.pageSize=100&sp.page=1&filter.number.val=${invoice}&filter.number.op=EQUAL`;
+
+          const body = { session, token, api_url: apiUrl };
+
+          try {
+            const response = await getDataFromAccurate(body);
+            const dataAccurate = response.d || [];
+
+            if (dataAccurate.length > 0) {
+              const status = dataAccurate[0].statusName;
+              if (status === "Lunas") {
+                console.log(`✅ Updating invoice: ${invoice}`);
+                await update("status_invoice", { invoice });
+              }
+            }
+          } catch (err) {
+            console.error(
+              `❌ Error processing invoice ${invoice}:`,
+              err.message || err
+            );
+          }
+        })
+      );
+    } catch (error) {
+      console.error("getStatusInvoice error:", error);
+    } finally {
+      setLoadingSync(false);
+      getData(); // refresh data setelah semua selesai
+    }
+  };
+
+  const getDatabase = async () => {
+    const tableName = "accurate";
+    try {
+      const response = await get(tableName);
+      setDatabases(response.data);
+    } catch (error) {
+      ErrorMessage(error);
+    }
+  };
+
   useEffect(() => {
     getData();
+    getDatabase();
   }, []);
 
   useEffect(() => {
@@ -99,6 +193,7 @@ const Recall = () => {
         const customer = filters.customer_name || "";
         const totalRecall = filters.totalCallValue || "all";
         const operator = filters.totalCallOperator || "=";
+        const status = filters.status || "all";
 
         const invoiceMatch = item.invoice
           .toLowerCase()
@@ -115,7 +210,12 @@ const Recall = () => {
           if (operator == "<") recallMatch = item.recall < totalRecall;
         }
 
-        return invoiceMatch && customerMatch && recallMatch;
+        let statusMatch = true;
+        if (status != "all") {
+          statusMatch = item.status_invoice == status;
+        }
+
+        return invoiceMatch && customerMatch && recallMatch && statusMatch;
       });
       setFilteredData(filtered);
     };
@@ -208,6 +308,23 @@ const Recall = () => {
             </div>
           </div>
 
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Status:</label>
+            <Select
+              placeholder="Status"
+              style={{ width: 200 }}
+              allowClear
+              defaultValue={filters.status}
+              onChange={(value) =>
+                handleFilterChange({ target: { name: "status", value } })
+              }
+            >
+              <Select.Option value="all">All</Select.Option>
+              <Select.Option value="paid">Paid</Select.Option>
+              <Select.Option value="unpaid">Unpaid</Select.Option>
+            </Select>
+          </div>
+
           <Button
             type="primary"
             style={{ marginTop: 25 }}
@@ -240,6 +357,16 @@ const Recall = () => {
               ))}
             </ExcelSheet>
           </ExcelFile>
+
+          <Button
+            loading={loadingSync}
+            type="danger"
+            style={{ marginTop: 25 }}
+            onClick={getStatusInvoice}
+            icon={<SyncOutlined />}
+          >
+            Sync Status
+          </Button>
         </div>
 
         {/* Data table */}
