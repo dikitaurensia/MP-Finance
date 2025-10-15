@@ -264,6 +264,14 @@ export function reportRecall() {
     method: "GET",
   });
 }
+export function reportDebtDrama(body) {
+  let { startDate, endDate } = body;
+
+  return request({
+    url: `${API_ROOT}/report/debt_drama?startdate=${startDate}&enddate=${endDate}`,
+    method: "GET",
+  });
+}
 
 export function reportpoin(body) {
   let { startDate, endDate } = body;

@@ -385,3 +385,12 @@ a {
   border-color: #40a9ff;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
+
+/* Allow text selection inside table cells */
+.ant-table {
+  user-select: text !important;
+}
+
+.ant-table-cell {
+  user-select: text !important;
+}

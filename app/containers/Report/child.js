@@ -6,12 +6,14 @@ import "../../assets/base.scss";
 import HistoryCall from "./history-call";
 import Recall from "./recall";
 import Outstanding from "./outstanding";
+import DebtDrama from "./debt-drama";
 
 const { TabPane } = Tabs;
 const ItemTabs = [
   { name: "History Call", key: 1, comp: HistoryCall },
   { name: "Summary Recall", key: 2, comp: Recall },
   { name: "Outstanding", key: 3, comp: Outstanding },
+  { name: "Debt Drama Report", key: 4, comp: DebtDrama },
 ];
 class Child extends React.Component {
   constructor(props) {

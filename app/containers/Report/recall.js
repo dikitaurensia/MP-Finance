@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Input, Space, Select, InputNumber } from "antd";
+import {
+  Table,
+  Button,
+  Input,
+  Space,
+  Select,
+  InputNumber,
+  Progress,
+} from "antd"; // Import Progress
 import {
   get,
   getDataFromAccurate,
@@ -25,12 +33,18 @@ const Recall = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadingSync, setLoadingSync] = useState(false);
+
+  // Progress Bar States
+  const [isSyncing, setIsSyncing] = useState(false); // New state to control progress bar visibility
+  const [progressCount, setProgressCount] = useState(0); // New state for current progress count
+  const [totalInvoicesToSync, setTotalInvoicesToSync] = useState(0); // New state for total count
+
   const [filters, setFilters] = useState({
     invoice: "",
     customer: "",
     totalCallValue: "all",
     totalCallOperator: "=",
-    status: "all",
+    status: "unpaid",
   });
 
   const columns = [
@@ -97,7 +111,6 @@ const Recall = () => {
             id: index + 1,
           }))
         );
-        setFilteredData(response.data);
       })
       .catch((error) => {
         ErrorMessage(error);
@@ -108,9 +121,13 @@ const Recall = () => {
   };
 
   const getStatusInvoice = async () => {
-    try {
-      setLoadingSync(true);
+    // Reset progress states
+    setProgressCount(0);
+    setTotalInvoicesToSync(0);
+    setLoadingSync(true);
+    setIsSyncing(true);
 
+    try {
       const { data } = await get("status_invoice");
       if (!data.length) {
         console.warn("No invoice data found");
@@ -122,52 +139,64 @@ const Recall = () => {
         return;
       }
 
+      const invoicesToProcess = data.map((item) => item.invoice);
+      setTotalInvoicesToSync(invoicesToProcess.length); // Set total count
+
       const dbBli = databases.find((x) => x.dbname.includes("Lak"));
       const dbMitran = databases.find((x) => x.dbname.includes("Mit"));
 
       const getDb = (invoice) =>
         invoice.startsWith("BLIN") ? dbBli : dbMitran;
 
-      // Jalankan semua invoice secara paralel
-      await Promise.allSettled(
-        data.map(async (item) => {
-          const { invoice } = item;
-          const db = getDb(invoice);
+      // Map data to an array of promises
+      const syncPromises = data.map(async (item) => {
+        const { invoice } = item;
+        const db = getDb(invoice);
 
-          if (!db) {
-            console.warn(`Database not found for invoice: ${invoice}`);
-            return;
-          }
+        if (!db) {
+          console.warn(`Database not found for invoice: ${invoice}`);
+          // Still increment count even if DB is missing
+          setProgressCount((prev) => prev + 1);
+          return;
+        }
 
-          const { token, host, session } = db;
-          const apiUrl = `${host}/accurate/api/sales-invoice/list.do?fields=id,number,statusName&sp.pageSize=100&sp.page=1&filter.number.val=${invoice}&filter.number.op=EQUAL`;
+        const { token, host, session } = db;
+        // Simplified API URL construction for clarity
+        const apiUrl = `${host}/accurate/api/sales-invoice/list.do?fields=id,number,statusName&sp.pageSize=100&sp.page=1&filter.number.val=${invoice}&filter.number.op=EQUAL`;
 
-          const body = { session, token, api_url: apiUrl };
+        const body = { session, token, api_url: apiUrl };
 
-          try {
-            const response = await getDataFromAccurate(body);
-            const dataAccurate = response.d || [];
+        try {
+          const response = await getDataFromAccurate(body);
+          const dataAccurate = response.d || [];
 
-            if (dataAccurate.length > 0) {
-              const status = dataAccurate[0].statusName;
-              if (status === "Lunas") {
-                console.log(`✅ Updating invoice: ${invoice}`);
-                await update("status_invoice", { invoice });
-              }
+          if (dataAccurate.length > 0) {
+            const status = dataAccurate[0].statusName;
+            if (status === "Lunas") {
+              console.log(`✅ Updating invoice: ${invoice}`);
+              await update("status_invoice", { invoice });
             }
-          } catch (err) {
-            console.error(
-              `❌ Error processing invoice ${invoice}:`,
-              err.message || err
-            );
           }
-        })
-      );
+        } catch (err) {
+          console.error(
+            `❌ Error processing invoice ${invoice}:`,
+            err.message || err
+          );
+        } finally {
+          // Increment progress count after processing an invoice, regardless of success
+          // Use the functional update to avoid stale state issues in a loop
+          setProgressCount((prev) => prev + 1);
+        }
+      });
+
+      // Wait for all promises to settle
+      await Promise.allSettled(syncPromises);
     } catch (error) {
       console.error("getStatusInvoice error:", error);
     } finally {
       setLoadingSync(false);
-      getData(); // refresh data setelah semua selesai
+      setIsSyncing(false); // Hide progress bar
+      getData(); // Refresh data after all updates are complete
     }
   };
 
@@ -186,6 +215,7 @@ const Recall = () => {
     getDatabase();
   }, []);
 
+  // ... (Rest of the useEffect and handleFilterChange remain the same)
   useEffect(() => {
     const applyFilters = () => {
       const filtered = data.filter((item) => {
@@ -193,7 +223,7 @@ const Recall = () => {
         const customer = filters.customer_name || "";
         const totalRecall = filters.totalCallValue || "all";
         const operator = filters.totalCallOperator || "=";
-        const status = filters.status || "all";
+        const status = filters.status || "unpaid";
 
         const invoiceMatch = item.invoice
           .toLowerCase()
@@ -227,7 +257,7 @@ const Recall = () => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
-
+  // ... (selectBefore remains the same)
   const selectBefore = (
     <Select
       defaultValue="="
@@ -244,6 +274,12 @@ const Recall = () => {
       <Option value="<"> {"<"}</Option>
     </Select>
   );
+
+  // Calculate percentage for the progress bar
+  const progressPercent =
+    totalInvoicesToSync > 0
+      ? Math.round((progressCount / totalInvoicesToSync) * 100)
+      : 0;
 
   return (
     <div
@@ -262,6 +298,7 @@ const Recall = () => {
             alignItems: "center",
           }}
         >
+          {/* ... (Customer Name Filter) */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: 4 }}>Customer Name:</label>
             <Input
@@ -275,6 +312,7 @@ const Recall = () => {
               }
             />
           </div>
+          {/* ... (Invoice Number Filter) */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: 4 }}>Invoice Number:</label>
             <Input
@@ -290,6 +328,7 @@ const Recall = () => {
             />
           </div>
 
+          {/* ... (Total Call Filter) */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: 4 }}>Total Call:</label>
             <div style={{ display: "flex" }}>
@@ -308,6 +347,7 @@ const Recall = () => {
             </div>
           </div>
 
+          {/* ... (Status Filter) */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: 4 }}>Status:</label>
             <Select
@@ -325,6 +365,7 @@ const Recall = () => {
             </Select>
           </div>
 
+          {/* ... (Search Button) */}
           <Button
             type="primary"
             style={{ marginTop: 25 }}
@@ -333,6 +374,7 @@ const Recall = () => {
           >
             Search
           </Button>
+          {/* ... (Export Button) */}
           <ExcelFile
             filename={`Report Recall`}
             element={
@@ -358,16 +400,31 @@ const Recall = () => {
             </ExcelSheet>
           </ExcelFile>
 
+          {/* Sync Status Button */}
           <Button
             loading={loadingSync}
             type="danger"
             style={{ marginTop: 25 }}
             onClick={getStatusInvoice}
             icon={<SyncOutlined />}
+            disabled={isSyncing} // Disable during sync to prevent multiple presses
           >
             Sync Status
           </Button>
         </div>
+
+        {/* Progress Bar Display */}
+        {isSyncing && totalInvoicesToSync > 0 && (
+          <div style={{ width: "90%", marginTop: 16 }}>
+            <Progress
+              percent={progressPercent}
+              status={progressPercent === 100 ? "success" : "active"}
+              format={() =>
+                `${progressCount} / ${totalInvoicesToSync} Invoices`
+              }
+            />
+          </div>
+        )}
 
         {/* Data table */}
         <Table
