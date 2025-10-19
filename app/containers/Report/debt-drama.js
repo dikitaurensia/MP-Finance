@@ -43,35 +43,34 @@ const DebtDrama = () => {
       title: "Customer Name",
       dataIndex: "customer_name",
       key: "customer_name",
-      width: 200,
       sorter: (a, b) => a.customer_name.localeCompare(b.customer_name),
     },
+    // {
+    //   title: "Invoice Number",
+    //   dataIndex: "invoice",
+    //   key: "invoice",
+    //   width: 150,
+    //   sorter: (a, b) => a.invoice.localeCompare(b.invoice),
+    // },
+    // {
+    //   title: "Total Amount",
+    //   dataIndex: "total_amount",
+    //   key: "total_amount",
+    //   width: 100,
+    //   render: (value) => (
+    //     <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
+    //   ),
+    //   sorter: (a, b) => a.total_amount - b.total_amount,
+    // },
     {
-      title: "Invoice Number",
-      dataIndex: "invoice",
-      key: "invoice",
+      title: "Average recall",
+      dataIndex: "avg_recall",
+      key: "avg_recall",
       width: 150,
-      sorter: (a, b) => a.invoice.localeCompare(b.invoice),
-    },
-    {
-      title: "Total Amount",
-      dataIndex: "total_amount",
-      key: "total_amount",
-      width: 100,
       render: (value) => (
         <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
       ),
-      sorter: (a, b) => a.total_amount - b.total_amount,
-    },
-    {
-      title: "Total Call",
-      dataIndex: "recall",
-      key: "recall",
-      width: 100,
-      render: (value) => (
-        <div style={{ textAlign: "right" }}>{formatCurrency(value)}</div>
-      ),
-      sorter: (a, b) => a.recall - b.recall,
+      sorter: (a, b) => a.avg_recall - b.avg_recall,
     },
   ];
 
@@ -110,14 +109,11 @@ const DebtDrama = () => {
         const invoice = filters.invoice || "";
         const customer = filters.customer_name || "";
 
-        const invoiceMatch = item.invoice
-          .toLowerCase()
-          .includes(invoice.toLowerCase());
         const customerMatch = item.customer_name
           .toLowerCase()
           .includes(customer.toLowerCase());
 
-        return invoiceMatch && customerMatch;
+        return customerMatch;
       });
       setFilteredData(filtered);
     };

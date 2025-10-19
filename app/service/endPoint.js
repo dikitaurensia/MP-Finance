@@ -28,6 +28,13 @@ export function get(form, tgl = null, tgl2 = null) {
   });
 }
 
+export function getWhatsappTemplate(type) {
+  return request({
+    url: `${API_ROOT}/whatsapp_template?type=${type}`,
+    method: "GET",
+  });
+}
+
 export function getDataCallHistories(form, ids) {
   return request({
     url: `${API_ROOT}/${form}?ids=${ids}`,

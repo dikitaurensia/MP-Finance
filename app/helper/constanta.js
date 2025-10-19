@@ -53,3 +53,14 @@ export function formatCurrency(value, format = null) {
     currency,
   }).format(value);
 }
+
+export const legends = [
+  {
+    name: "{{customerName}}",
+    sample: "Abditama Graha Internusa, PT",
+  },
+  {
+    name: "{{companyName}}",
+    sample: "CV. Boss Lakban Indonesia",
+  },
+];

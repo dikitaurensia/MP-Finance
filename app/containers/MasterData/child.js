@@ -13,6 +13,8 @@ import {
   List,
   Avatar,
   InputNumber,
+  Popconfirm,
+  message,
 } from "antd";
 import {
   get,
@@ -20,9 +22,11 @@ import {
   create,
   getDataFromAccurate,
   getDataCallHistories,
+  getWhatsappTemplate,
 } from "../../service/endPoint";
 import {
   ErrorMessage,
+  escapeRegExp,
   formatCurrency,
   SuccessMessage,
 } from "../../helper/publicFunction";
@@ -39,6 +43,7 @@ import {
   FORMAT_DATE_FILTER_ACC,
   FORMAT_DATE_LABEL_FULL,
 } from "../../helper/constanta";
+import _ from "lodash";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -46,10 +51,13 @@ const { confirm } = Modal;
 const form = "master-data-";
 
 const defaultSelectDb = localStorage.getItem(`${form}selectDB`) || 0;
+const defaultSelectWATemp = localStorage.getItem(`${form}selectWATemp`) || 0;
+
 const defaultSelectStatus =
   localStorage.getItem(`${form}selectStatus`) || "true";
 const defaultSelectCustomer =
   localStorage.getItem(`${form}selectCustomer`) || "";
+const defaultSelectInvoice = localStorage.getItem(`${form}selectInvoice`) || "";
 const defaultSelectBilledBy = localStorage.getItem(`${form}selectBilledBy`)
   ? localStorage.getItem(`${form}selectBilledBy`).split(",")
   : [];
@@ -81,6 +89,7 @@ const SalesInvoiceTable = () => {
   const [selectDB, setSelectDB] = useState(defaultSelectDb);
   const [selectStatus, setSelectStatus] = useState(defaultSelectStatus);
   const [selectCustomer, setSelectCustomer] = useState(defaultSelectCustomer);
+  const [selectInvoice, setSelectInvoice] = useState(defaultSelectInvoice);
   const [selectBilledBy, setSelectBilledBy] = useState(defaultSelectBilledBy);
   const [totalCallOperator, setTotalCallOperator] = useState(
     defaultTotalCallOperator
@@ -88,6 +97,8 @@ const SalesInvoiceTable = () => {
   const [totalCallValue, setTotalCallValue] = useState(defaultTotalCallValue);
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [invoiceDate, setInvoiceDate] = useState(defaultInvoiceDate);
+
+  const [selectWATemp, setSelectWATemp] = useState(defaultSelectWATemp);
 
   //data
   const [dataWhatsappMap, setdataWhatsappMap] = useState(new Map());
@@ -97,6 +108,7 @@ const SalesInvoiceTable = () => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [callHistoriesMap, setCallHistoriesMap] = useState(new Map());
   const [listInvoices, setListInvoices] = useState([]);
+  const [dataWhatsappTemplate, setDataWhatsappTemplate] = useState([]);
 
   //loading
   const [loadingTable, setLoadingTable] = useState(false);
@@ -152,75 +164,14 @@ const SalesInvoiceTable = () => {
     localStorage.setItem(`${form}selectDB`, selectDB);
     localStorage.setItem(`${form}selectStatus`, selectStatus);
     localStorage.setItem(`${form}selectCustomer`, selectCustomer);
+    localStorage.setItem(`${form}selectInvoice`, selectInvoice);
     localStorage.setItem(`${form}selectBilledBy`, selectBilledBy);
     localStorage.setItem(`${form}totalCallOperator`, totalCallOperator);
     localStorage.setItem(`${form}totalCallValue`, totalCallValue);
     localStorage.setItem(`${form}dueDate`, dueDate);
     localStorage.setItem(`${form}invoiceDate`, invoiceDate);
+    localStorage.setItem(`${form}selectWATemp`, selectWATemp);
   };
-
-  // const loadFilterLocal = () => {
-  //   const compareAndSet = (
-  //     localValue,
-  //     currentValue,
-  //     setState,
-  //     isArray = false
-  //   ) => {
-  //     if (localValue == null) return;
-  //     const parsedValue = isArray ? localValue.split(",") : localValue;
-
-  //     // hanya set state jika beda dari nilai sekarang
-  //     const isDifferent = isArray
-  //       ? JSON.stringify(parsedValue) !== JSON.stringify(currentValue)
-  //       : parsedValue !== currentValue;
-
-  //     if (isDifferent) setState(parsedValue);
-  //   };
-
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}selectDB`),
-  //     selectDB,
-  //     setSelectDB
-  //   );
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}selectStatus`),
-  //     selectStatus,
-  //     setSelectStatus
-  //   );
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}selectCustomer`),
-  //     selectCustomer,
-  //     setSelectCustomer
-  //   );
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}selectBilledBy`),
-  //     selectBilledBy,
-  //     setSelectBilledBy,
-  //     true
-  //   );
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}totalCallOperator`),
-  //     totalCallOperator,
-  //     setTotalCallOperator
-  //   );
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}totalCallValue`),
-  //     totalCallValue,
-  //     setTotalCallValue
-  //   );
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}dueDate`),
-  //     dueDate,
-  //     setDueDate,
-  //     true
-  //   );
-  //   compareAndSet(
-  //     localStorage.getItem(`${form}invoiceDate`),
-  //     invoiceDate,
-  //     setInvoiceDate,
-  //     true
-  //   );
-  // };
 
   // Handle changes to filter inputs
   const handleValueEditChange = (e) => {
@@ -461,11 +412,19 @@ const SalesInvoiceTable = () => {
       const invoices = allData.map((x) => x.number);
 
       const masterData = allData.map((x) => {
-        const hash = btoa(
-          `${db.dbname.toLowerCase().includes("mitra") ? "mitra" : "boss"}:${
-            x.id
-          }`
-        );
+        const getType = (name) => {
+          name = name.toLowerCase();
+          if (name.includes("mitra")) return "mitra";
+          if (name.includes("kampung")) return "kampung";
+          return "boss";
+        };
+        const hash = btoa(`${getType(db.dbname)}:${x.id}`);
+
+        // const hash = btoa(
+        //   `${db.dbname.toLowerCase().includes("mitra") ? "mitra" : "boss"}:${
+        //     x.id
+        //   }`
+        // );
         const dueDate = moment(x.dueDate, "DD/MM/YYYY");
         const today = moment();
         let colorWarning = "black";
@@ -533,6 +492,20 @@ const SalesInvoiceTable = () => {
     }
   };
 
+  const getWATemplate = async () => {
+    try {
+      const response = await getWhatsappTemplate("finance");
+      setDataWhatsappTemplate(response.data);
+      if (response.data.length > 0 && selectWATemp == 0) {
+        const selWATemp = localStorage.getItem(`${form}selectWATemp`);
+        const val = selWATemp > 0 ? selWATemp : response.data[0].id;
+        setSelectWATemp(val);
+      }
+    } catch (error) {
+      ErrorMessage(error);
+    }
+  };
+
   const getDataWA = async () => {
     const tableName = "customer_contact";
     try {
@@ -582,7 +555,6 @@ const SalesInvoiceTable = () => {
 
   const handleDBChange = (value) => {
     setSelectDB(value);
-    // setSelectCustomer("");
   };
 
   const handleSelectRows = (selectedRowKeys, selectedRows) => {
@@ -594,6 +566,9 @@ const SalesInvoiceTable = () => {
   // --- WhatsApp Logic ---
   const sendMessage = async (invoices) => {
     if (invoices.length === 0) return;
+    const template = dataWhatsappTemplate.find((x) => x.id === selectWATemp);
+
+    const { header, footer } = template;
 
     const db = databases.find((x) => x.id === selectDB);
     const { token, host, session } = db;
@@ -631,14 +606,30 @@ const SalesInvoiceTable = () => {
         const detail = response.d || {};
         const vaNumber = detail.vaNumber || "";
 
+        // const dataBank = {
+        //   accountName:
+        //     db.dbname == "CV. Boss Lakban Indonesia"
+        //       ? "BOSS LAKBAN INDONESIA, CV"
+        //       : "MITRA ANUGERAH PACKINDO",
+        //   accountNumber:
+        //     db.dbname == "CV. Boss Lakban Indonesia"
+        //       ? "2118888028"
+        //       : "2118398888",
+        // };
+
         const dataBank = {
           accountName:
-            db.dbname == "CV. Boss Lakban Indonesia"
+            db.dbname === "CV. Boss Lakban Indonesia"
               ? "BOSS LAKBAN INDONESIA, CV"
+              : db.dbname === "Kampung Packing"
+              ? "SANTOSO JANUAR"
               : "MITRA ANUGERAH PACKINDO",
+
           accountNumber:
-            db.dbname == "CV. Boss Lakban Indonesia"
+            db.dbname === "CV. Boss Lakban Indonesia"
               ? "2118888028"
+              : db.dbname === "Kampung Packing"
+              ? "5280233546"
               : "2118398888",
         };
 
@@ -669,10 +660,13 @@ const SalesInvoiceTable = () => {
             invoices,
           }));
 
-        let message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n`;
+        // let message = `Dengan hormat bagian keuangan ${customerName},\n\nTerima kasih atas kerjasama bisnis dengan anda.\n\nBerikut adalah daftar faktur penjualan yang telah diterbitkan:\n\n`;
 
-        // Add the main heading for the list of invoices
-        message += `Faktur yang sudah/ akan jatuh tempo\n`;
+        // // Add the main heading for the list of invoices
+        // message += `Faktur yang sudah/ akan jatuh tempo\n`;
+
+        let message = "";
+        message += `${header}\n`;
 
         // Iterate through each due date group and add them to the message
         let counter = 1; // Start a global counter for the numbered list
@@ -697,9 +691,23 @@ const SalesInvoiceTable = () => {
 
         message += `*Total Invoice: Rp. ${formatCurrency(
           grandTotal
-        )}*\n\n${payment}\n\nTerlampir link dokumen invoice dibawah ini:\n\n${invoiceLinks}\n\nTerima Kasih,\n${
+        )}*\n\n${payment}\n\nTerlampir link dokumen invoice dibawah ini:\n\n${invoiceLinks}`;
+
+        // message += `\n\nTerima Kasih,\n${
+        //   db.dbname
+        // }`;
+
+        message += `\n\n${footer}`;
+
+        message = message.replace(
+          new RegExp(escapeRegExp("{{customerName}}"), "g"),
+          customerName
+        );
+
+        message = message.replace(
+          new RegExp(escapeRegExp("{{companyName}}"), "g"),
           db.dbname
-        }`;
+        );
 
         const now = moment()
           .tz("Asia/Jakarta")
@@ -716,6 +724,8 @@ const SalesInvoiceTable = () => {
           message,
           customer_name: customerName,
         });
+
+        // console.log("message", message);
 
         SuccessMessage("send WA ke " + customerName);
         await delay(10000);
@@ -740,7 +750,8 @@ const SalesInvoiceTable = () => {
         return bv - av;
       });
       confirm({
-        title: "Send message? Some phone numbers are not verified.",
+        title: `Send message with ${template.name ||
+          ""}? Some phone numbers are not verified.`,
         icon: <ExclamationCircleOutlined />,
         content: (
           <div
@@ -797,7 +808,7 @@ const SalesInvoiceTable = () => {
   useEffect(() => {
     getDatabase();
     getDataWA();
-    // loadFilterLocal();
+    getWATemplate();
   }, []);
 
   useEffect(() => {
@@ -825,14 +836,12 @@ const SalesInvoiceTable = () => {
       const customerMatch = item.customerName
         .toLowerCase()
         .includes(selectCustomer.toLowerCase());
-
       let billedByMatch = true;
       if (selectBilledBy.length !== 0) {
         billedByMatch = selectBilledBy.some((b) =>
           item.billedBy.toLowerCase().includes(b.toLowerCase())
         );
       }
-
       let recallMatch = true;
       if (totalCallOperator == "=")
         recallMatch = item.totalCall == totalCallValue;
@@ -844,21 +853,43 @@ const SalesInvoiceTable = () => {
         recallMatch = item.totalCall <= totalCallValue;
       if (totalCallOperator == "<")
         recallMatch = item.totalCall < totalCallValue;
-
-      return customerMatch && billedByMatch && recallMatch;
+      const invoiceMatch = item.number
+        .toLowerCase()
+        .includes(selectInvoice.toLowerCase());
+      return customerMatch && billedByMatch && recallMatch && invoiceMatch;
     });
     setFilteredData(filtered);
     saveFilterLocal();
   };
 
+  // useEffect(() => {
+  //   applyFilters();
+  // }, [
+  //   selectBilledBy,
+  //   selectCustomer,
+  //   dataSource,
+  //   totalCallOperator,
+  //   totalCallValue,
+  //   selectInvoice,
+  // ]);
+
   useEffect(() => {
-    applyFilters();
+    const debouncedFilter = _.debounce(() => {
+      applyFilters();
+    }, 500); // 500ms delay
+
+    debouncedFilter();
+
+    return () => {
+      debouncedFilter.cancel();
+    };
   }, [
     selectBilledBy,
     selectCustomer,
     dataSource,
     totalCallOperator,
     totalCallValue,
+    selectInvoice,
   ]);
 
   // --- Render JSX ---
@@ -919,6 +950,9 @@ const SalesInvoiceTable = () => {
     </Select>
   );
 
+  const template =
+    dataWhatsappTemplate.find((x) => x.id === selectWATemp) || {};
+
   return (
     <React.Fragment>
       <section className="kanban__main">
@@ -928,20 +962,29 @@ const SalesInvoiceTable = () => {
             onBack={() => window.history.back()}
             title="Sales Invoice"
             extra={[
-              <Button
-                key="multi-wa"
-                type="primary"
-                icon={<WhatsAppOutlined />}
-                style={{
-                  backgroundColor: "#25D366",
-                  borderColor: "#25D366",
-                  color: "white",
-                }}
+              <Popconfirm
+                placement="top"
+                title={`Are you sure to blast whatsapp with ${template.name ||
+                  ""}?`}
+                onConfirm={generateMultipleWhatsApp}
+                okText="Yes"
+                cancelText="No"
                 disabled={selectedRows.length === 0}
-                onClick={generateMultipleWhatsApp}
               >
-                Generate WhatsApp ({selectedRows.length})
-              </Button>,
+                <Button
+                  key="multi-wa"
+                  type="primary"
+                  icon={<WhatsAppOutlined />}
+                  style={{
+                    backgroundColor: "#25D366",
+                    borderColor: "#25D366",
+                    color: "white",
+                  }}
+                  disabled={selectedRows.length === 0}
+                >
+                  Generate WhatsApp ({selectedRows.length})
+                </Button>
+              </Popconfirm>,
             ]}
           />
         </section>
@@ -1052,6 +1095,17 @@ const SalesInvoiceTable = () => {
                 />
               </div>
 
+              {/* Invoice Select */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Invoice:</label>
+                <Input
+                  placeholder="Invoice"
+                  style={{ width: 250 }}
+                  value={selectInvoice}
+                  onChange={(e) => setSelectInvoice(e.target.value)}
+                />
+              </div>
+
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <label style={{ marginBottom: 4 }}>Total Call:</label>
                 <div style={{ display: "flex" }}>
@@ -1065,6 +1119,23 @@ const SalesInvoiceTable = () => {
                     onChange={(value) => setTotalCallValue(value)}
                   />
                 </div>
+              </div>
+
+              {/* Database Select */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: 4 }}>Template:</label>
+                <Select
+                  className="database-select"
+                  value={selectWATemp}
+                  onChange={(value) => setSelectWATemp(value)}
+                  style={{ width: 250 }}
+                >
+                  {dataWhatsappTemplate.map((item) => (
+                    <Select.Option value={item.id} key={item.id}>
+                      {item.name}
+                    </Select.Option>
+                  ))}
+                </Select>
               </div>
               <Button type="primary" onClick={applyFilters}>
                 Apply Filter

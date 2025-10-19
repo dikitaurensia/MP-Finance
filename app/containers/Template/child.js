@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { EditOutlined, WhatsAppOutlined } from "@ant-design/icons";
 
 import {
@@ -12,73 +12,25 @@ import {
   Space,
   Tag,
   Button,
+  List,
+  Divider,
+  Table,
 } from "antd";
 import "../../assets/base.scss";
-const { Meta } = Card;
+import { getWhatsappTemplate, update } from "../../service/endPoint";
+import { escapeRegExp, SuccessMessage } from "../../helper/publicFunction";
+import { legends } from "../../helper/constanta";
 const { TextArea } = Input;
-const { Paragraph, Text, Title } = Typography;
-
-// --- Konten Default Template (Disesuaikan untuk 3 Jenis) ---
-const initialHeader = `Dengan hormat bagian keuangan Mario Mutiara Palem,
-Terima kasih atas kerjasama bisnis dengan anda.
-
-Berikut adalah daftar faktur penjualan yang telah diterbitkan:
-Faktur yang sudah/ akan jatuh tempo`;
-
-const initialBody = `•   Tanggal : *04 Oct 2025*
-1.⁠ ⁠Faktur penjualan BLIN-1025-0016 - Rp. 1.950.000
-
-*Total Invoice: Rp. 1.950.000*
-Pembayaran transfer ke Bank BCA: *BOSS LAKBAN INDONESIA, CV* Dengan no : *2118888028*
-
-Terlampir link dokumen invoice dibawah ini:
-https://pay.mitranpack.com/?q=Ym9zczo1NTQwMg==`;
-
-const initialFooter = `Terima Kasih,
-CV. Boss Lakban Indonesia`;
-
-const defaultTemplates = [
-  {
-    id: "h-2",
-    name: "Template H-2",
-    description: "Pengingat pembayaran 2 hari sebelum jatuh tempo.",
-    tagColor: "blue",
-    header: initialHeader,
-    body: initialBody.replace("*04 Oct 2025*", "*{{tanggal_2_hari_lagi}}*"),
-    footer: initialFooter,
-  },
-  {
-    id: "due-date",
-    name: "Template Jatuh Tempo",
-    description: "Pengingat pembayaran tepat pada hari jatuh tempo.",
-    tagColor: "gold",
-    header: initialHeader,
-    body: initialBody.replace("*04 Oct 2025*", "*{{tanggal_jatuh_tempo}}*"),
-    footer: initialFooter,
-  },
-  {
-    id: "warning",
-    name: "Template Peringatan",
-    description: "Peringatan pembayaran untuk faktur yang sudah terlambat.",
-    tagColor: "red",
-    header: initialHeader.replace(
-      "Terima kasih atas kerjasama bisnis dengan anda.",
-      "Kami mengingatkan Anda terkait keterlambatan pembayaran."
-    ),
-    body: initialBody.replace(
-      "*04 Oct 2025*",
-      "*{{tanggal_jatuh_tempo_asli}}*"
-    ),
-    footer: initialFooter,
-  },
-];
+const { Paragraph, Text } = Typography;
 
 const WhatsAppPreview = ({ message }) => {
-  // Fungsi untuk memformat teks (Bold, Italic, Strikethrough, dan Enter)
   const formatMessage = (text) => {
     if (!text) return null;
+    legends.forEach((x) => {
+      const regex = new RegExp(escapeRegExp(x.name), "g");
+      text = text.replace(regex, x.sample);
+    });
 
-    // 1. Memisahkan teks berdasarkan baris baru (\n)
     const lines = text.split("\n");
 
     return lines.map((line, lineIndex) => {
@@ -86,15 +38,12 @@ const WhatsAppPreview = ({ message }) => {
       const elements = [];
       let lastIndex = 0;
 
-      // Regular Expression untuk menangkap SEMUA markup: *bold*, _italic_, ~strikethrough~
       const allMarkupRegex = /(\*|_|~)(.*?)\1/g;
       let match;
 
-      // Process line to find markup
       while ((match = allMarkupRegex.exec(remainingText)) !== null) {
         const [fullMatch, delimiter, content] = match;
 
-        // Add plain text before the markup
         if (match.index > lastIndex) {
           elements.push(
             <Text key={`text-pre-${lineIndex}-${lastIndex}`}>
@@ -103,7 +52,6 @@ const WhatsAppPreview = ({ message }) => {
           );
         }
 
-        // Determine styling based on delimiter
         let styleProps = {};
         if (delimiter === "*") {
           styleProps = { strong: true };
@@ -113,7 +61,6 @@ const WhatsAppPreview = ({ message }) => {
           styleProps = { delete: true };
         }
 
-        // Add the styled text element
         elements.push(
           <Text key={`styled-${lineIndex}-${match.index}`} {...styleProps}>
             {content}
@@ -123,7 +70,6 @@ const WhatsAppPreview = ({ message }) => {
         lastIndex = match.index + fullMatch.length;
       }
 
-      // Add remaining text after the last markup
       if (lastIndex < remainingText.length) {
         elements.push(
           <Text key={`text-end-${lineIndex}-${lastIndex}`}>
@@ -132,7 +78,6 @@ const WhatsAppPreview = ({ message }) => {
         );
       }
 
-      // Return a div for one line. minHeight ensures empty lines appear as breaks.
       return (
         <div
           key={`line-${lineIndex}`}
@@ -148,7 +93,7 @@ const WhatsAppPreview = ({ message }) => {
     <Card
       title={
         <Space>
-          <WhatsAppOutlined style={{ color: "#25D366" }} /> Pratinjau Pesan
+          <WhatsAppOutlined style={{ color: "#25D366" }} /> Preview
         </Space>
       }
       style={{
@@ -189,7 +134,7 @@ const EditorSection = ({
     style={{
       marginBottom: 15,
       borderRadius: 6,
-      borderLeft: "3px solid #16a34a",
+      // borderLeft: "3px solid #797979ff",
     }}
   >
     <TextArea
@@ -208,16 +153,14 @@ const EditorSection = ({
 );
 
 const Template = () => {
-  const [templates, setTemplates] = useState(defaultTemplates);
+  const [templates, setTemplates] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
-  // State untuk menyimpan perubahan sementara di modal
   const [editorHeader, setEditorHeader] = useState("");
   const [editorBody, setEditorBody] = useState("");
   const [editorFooter, setEditorFooter] = useState("");
 
-  // Handle pembukaan modal
   const handleEdit = (template) => {
     setSelectedTemplate(template);
     setEditorHeader(template.header);
@@ -226,29 +169,43 @@ const Template = () => {
     setIsModalVisible(true);
   };
 
-  // Handle penyimpanan template dari modal
-  const handleSave = () => {
-    if (!selectedTemplate) return;
-
-    // 1. Perbarui daftar templates
-    const updatedTemplates = templates.map((t) =>
-      t.id === selectedTemplate.id
-        ? {
-            ...t,
-            header: editorHeader,
-            body: editorBody,
-            footer: editorFooter,
-          }
-        : t
-    );
-    setTemplates(updatedTemplates);
-
-    // 2. Tutup modal
-    setIsModalVisible(false);
-    setSelectedTemplate(null);
+  const getData = () => {
+    let getData = getWhatsappTemplate("finance");
+    getData
+      .then((response) => {
+        setTemplates(
+          response.data.map((item, index) => ({
+            ...item,
+            tagColor: index == 0 ? "blue" : index == 1 ? "gold" : "red",
+          }))
+        );
+      })
+      .catch((error) => {
+        ErrorMessage(error);
+      })
+      .finally(() => {});
   };
 
-  // Gabungkan 3 bagian pesan untuk pratinjau modal
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const handleSave = async () => {
+    if (!selectedTemplate) return;
+
+    await update("whatsapp_template", {
+      id: selectedTemplate.id,
+      header: editorHeader,
+      footer: editorFooter,
+    });
+
+    SuccessMessage(`updated ${selectedTemplate.name}`);
+
+    setIsModalVisible(false);
+    setSelectedTemplate(null);
+    getData();
+  };
+
   const combinedMessage = [editorHeader, editorBody, editorFooter]
     .filter(Boolean)
     .join("\n\n");
@@ -265,9 +222,7 @@ const Template = () => {
         </section>
 
         <div className="kanban__main-wrapper">
-          {/* Grid untuk dua kolom */}
           <Row gutter={[24, 24]}>
-            {/* Kolom untuk menampilkan 3 Kartu Template */}
             {templates.map((template) => (
               <Col key={template.id} span={24} lg={8}>
                 <Card
@@ -275,7 +230,7 @@ const Template = () => {
                     <Space direction="vertical" size={2}>
                       <Text strong>{template.name}</Text>
                       <Tag color={template.tagColor} style={{ marginTop: 4 }}>
-                        {template.id.toUpperCase()}
+                        {template.tag.toUpperCase()}
                       </Tag>
                     </Space>
                   }
@@ -283,7 +238,7 @@ const Template = () => {
                   style={{
                     borderRadius: 10,
                     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-                    height: "100%", // Memastikan tinggi kartu sama
+                    height: "100%",
                   }}
                   actions={[
                     <Button
@@ -314,11 +269,10 @@ const Template = () => {
             ))}
           </Row>
 
-          {/* Modal Editor */}
           <Modal
             title={
               <Space>
-                <EditOutlined /> Edit Template:{" "}
+                <EditOutlined /> Edit Template:
                 {selectedTemplate ? selectedTemplate.name : ""}
               </Space>
             }
@@ -336,7 +290,7 @@ const Template = () => {
                   title="1. Header"
                   value={editorHeader}
                   onChange={(e) => setEditorHeader(e.target.value)}
-                  placeholder="Masukkan salam pembuka."
+                  placeholder="header"
                   rows={10}
                 />
 
@@ -344,7 +298,7 @@ const Template = () => {
                   title="2. Body"
                   value={editorBody}
                   onChange={(e) => setEditorBody(e.target.value)}
-                  placeholder="Masukkan detail, variabel, dan informasi utama."
+                  placeholder="body"
                   rows={5}
                   disabled={true}
                 />
@@ -353,12 +307,34 @@ const Template = () => {
                   title="3. Footer"
                   value={editorFooter}
                   onChange={(e) => setEditorFooter(e.target.value)}
-                  placeholder="Masukkan penutup, link dokumen, dan tanda tangan."
+                  placeholder="footer"
                   rows={5}
                 />
               </Col>
 
               <Col span={24} md={12}>
+                <Table
+                  size="small"
+                  columns={[
+                    {
+                      title: "Variable",
+                      dataIndex: "name",
+                      key: "name",
+                    },
+                    {
+                      title: "Example",
+                      dataIndex: "sample",
+                      key: "sample",
+                    },
+                  ]}
+                  dataSource={legends}
+                  style={{
+                    marginBottom: "16px",
+                    borderRadius: 6,
+                    // borderLeft: "3px solid #797979ff",
+                  }}
+                  pagination={false}
+                />
                 <div
                   style={{
                     display: "flex",
