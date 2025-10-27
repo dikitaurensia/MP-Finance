@@ -7,6 +7,7 @@ import HistoryCall from "./history-call";
 import Recall from "./recall";
 import Outstanding from "./outstanding";
 import DebtDrama from "./debt-drama";
+import MonitoringRecall from "./monitoring-status";
 import RecallTimeliness from "./recall-timeliness";
 
 const { TabPane } = Tabs;
@@ -16,6 +17,11 @@ const ItemTabs = [
   { name: "Outstanding Report", key: 3, comp: Outstanding },
   { name: "Debt Drama Report", key: 4, comp: DebtDrama },
   { name: "Recall Timeliness Report", key: 5, comp: RecallTimeliness },
+  {
+    name: "Monitoring Status Report",
+    key: 6,
+    comp: MonitoringRecall,
+  },
 ];
 class Child extends React.Component {
   constructor(props) {

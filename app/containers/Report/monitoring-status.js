@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Table, DatePicker, Button, Space, Popover } from "antd";
+import { Table, DatePicker, Button, Space, Select, Popover } from "antd";
 import {
+  get,
   getDataCallHistories,
-  reportCallTimelines,
+  getDataFromAccurate,
 } from "../../service/endPoint";
-import { FORMAT_DATE } from "../../helper/constanta";
+import { FORMAT_DATE_FILTER_ACC } from "../../helper/constanta";
 import moment from "moment-timezone";
+import { ErrorMessage } from "../../helper/publicFunction";
 import ReactExport from "react-export-excel-hot-fix";
 import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 const ExcelFile = ReactExport.ExcelFile;
@@ -13,15 +15,28 @@ const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
 const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
 const { RangePicker } = DatePicker;
 
-const RecallTimeliness = () => {
+const MonitoringRecall = () => {
+  const [selectDB, setSelectDB] = useState(0);
+  const [databases, setDatabases] = useState([]);
+
   const [data, setData] = useState([]);
   const [dataExpanded, setDataExpanded] = useState([]);
 
   const [filteredData, setFilteredData] = useState([]);
 
-  const [filterDate, setFilterDate] = useState(moment().format(FORMAT_DATE));
+  const [filterDueDate, setFilterDueDate] = useState([
+    moment()
+      .clone()
+      .startOf("month")
+      .format(FORMAT_DATE_FILTER_ACC),
+    moment().format(FORMAT_DATE_FILTER_ACC),
+  ]);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    invoice: "",
+    customer: "",
+  });
 
   const [expandedKeys, setExpandedKeys] = useState([]);
 
@@ -32,7 +47,6 @@ const RecallTimeliness = () => {
       key: "customer_name",
       render: (text, record) => {
         return <div style={{ fontSize: 15, fontWeight: "bold" }}>{text}</div>;
-        // return <Alert message={text} type="warning" />;
       },
     },
   ];
@@ -53,16 +67,21 @@ const RecallTimeliness = () => {
     },
     {
       title: "Invoice",
-      dataIndex: "invoice",
-      key: "invoice",
-      width: 300,
+      dataIndex: "number",
+      key: "number",
+      width: 250,
     },
-
+    {
+      title: "Due Date",
+      dataIndex: "dueDateView",
+      key: "dueDateView",
+      width: 200,
+    },
     {
       title: "Recall 0",
       dataIndex: "recall_0",
       key: "recall_0",
-      width: 300,
+      width: 250,
       render: (text, record) => {
         const content = (
           <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>
@@ -81,7 +100,7 @@ const RecallTimeliness = () => {
       title: "Recall 1",
       dataIndex: "recall_1",
       key: "recall_1",
-      width: 300,
+      width: 250,
       render: (text, record) => {
         const content = (
           <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>
@@ -100,7 +119,7 @@ const RecallTimeliness = () => {
       title: "Recall 2",
       dataIndex: "recall_2",
       key: "recall_2",
-      width: 300,
+      width: 250,
       render: (text, record) => {
         const content = (
           <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>
@@ -119,7 +138,7 @@ const RecallTimeliness = () => {
       title: "Recall 3",
       dataIndex: "recall_3",
       key: "recall_3",
-      width: 300,
+      width: 250,
       render: (text, record) => {
         const content = (
           <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>
@@ -138,7 +157,7 @@ const RecallTimeliness = () => {
       title: "Recall 4",
       dataIndex: "recall_4",
       key: "recall_4",
-      width: 300,
+      width: 250,
       render: (text, record) => {
         const content = (
           <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>
@@ -158,19 +177,58 @@ const RecallTimeliness = () => {
   const getData = async () => {
     setIsLoading(true);
 
-    const api = await reportCallTimelines({ date: filterDate });
-    const datas = api.data;
+    const db = databases.find((x) => x.id === selectDB);
+    const { token, host, session } = db;
+
+    let allData = [];
+
+    // for (const dueDate of filterDueDate) {
+    let page = 1;
+    let hasMore = true;
+    // let queryDueDate = `&filter.dueDate.op=EQUAL&filter.dueDate.val=${dueDate}`;
+    const tempDueDate = `{"type": "at-date","operator": null,"date": "${
+      filterDueDate[0]
+    }","endDate": "${filterDueDate[1]}"}`;
+
+    const queryDueDate =
+      filterDueDate[0] && filterDueDate[1]
+        ? `&dueDateFilter=${encodeURIComponent(tempDueDate)}`
+        : "";
+
+    while (hasMore) {
+      const body = {
+        session,
+        token,
+        api_url: `${host}/accurate/api/sales-invoice/list.do?fields=id,number,transDate,currencyId,dueDate,customer,totalAmount,primeOwing&outstandingFilter=true&sp.pageSize=100&sp.page=${page}${queryDueDate}`,
+      };
+      const response = await getDataFromAccurate(body);
+      const data = response.d || [];
+      allData = [...allData, ...data];
+
+      if (data.length < 100) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+    // }
+
+    const datas = allData.map((item, index) => ({
+      ...item,
+      customer_name: item.customer.name,
+      id: index + 1,
+    }));
 
     const apiCallHistory = await getDataCallHistories(
       "call_history",
-      datas.map((x) => x.invoice).join(",")
+      datas.map((x) => x.number).join(",")
     );
 
     const dataCallHistories = apiCallHistory.data;
 
     datas.forEach((invoice) => {
       const callHistory = dataCallHistories.filter(
-        (x) => x.invoice === invoice.invoice
+        (x) => x.invoice === invoice.number
       );
 
       const dateCalls = callHistory.map((x) => {
@@ -192,6 +250,19 @@ const RecallTimeliness = () => {
     setIsLoading(false);
   };
 
+  const getDatabase = async () => {
+    const tableName = "accurate";
+    try {
+      const response = await get(tableName);
+      setDatabases(response.data);
+      if (response.data.length > 0) {
+        setSelectDB(response.data[0].id);
+      }
+    } catch (error) {
+      ErrorMessage(error);
+    }
+  };
+
   const summarizeInvoices = (invoices) => {
     return Object.values(
       invoices.reduce((acc, invoice) => {
@@ -207,11 +278,36 @@ const RecallTimeliness = () => {
     );
   };
 
+  const handleDBChange = (value) => {
+    setSelectDB(value);
+  };
+
   useEffect(() => {
-    if (filterDate) {
+    getDatabase();
+  }, []);
+
+  useEffect(() => {
+    if (selectDB) {
       getData();
     }
-  }, [filterDate]);
+  }, [selectDB, filterDueDate]);
+
+  useEffect(() => {
+    const applyFilters = () => {
+      const filtered = data.filter((item) => {
+        const customer = filters.customer_name || "";
+
+        const customerMatch = true;
+        // const customerMatch = item.customer_name
+        //   .toLowerCase()
+        //   .includes(customer.toLowerCase());
+
+        return customerMatch;
+      });
+      setFilteredData(filtered);
+    };
+    applyFilters();
+  }, [filters, data]);
 
   useEffect(() => {
     if (filteredData.length) {
@@ -251,12 +347,54 @@ const RecallTimeliness = () => {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Database:</label>
+            <Select
+              className="database-select"
+              value={selectDB}
+              onChange={handleDBChange}
+              style={{ width: 250 }}
+            >
+              {databases.map((item) => (
+                <Select.Option value={item.id} key={item.id}>
+                  {item.dbname}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          {/* <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Customer Name:</label>
+            <Input
+              placeholder="Customer Name"
+              style={{ width: 200 }}
+              value={filters.customer_name}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "customer_name", value: e.target.value },
+                })
+              }
+            />
+          </div> */}
+
+          {/* <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: 4 }}>Activity Date:</label>
             <DatePicker
-              defaultValue={moment(filterDate, FORMAT_DATE)}
-              format={FORMAT_DATE}
+              defaultValue={moment(filterDate, FORMAT_DATE_FILTER_ACC)}
+              format={FORMAT_DATE_FILTER_ACC}
               onChange={(value, dateString) => setFilterDate(dateString)}
               style={{ width: 240 }}
+            />
+          </div> */}
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Due Date:</label>
+            <RangePicker
+              defaultValue={[
+                moment(filterDueDate[0], FORMAT_DATE_FILTER_ACC),
+                moment(filterDueDate[1], FORMAT_DATE_FILTER_ACC),
+              ]}
+              format={FORMAT_DATE_FILTER_ACC}
+              onChange={(value, dateString) => setFilterDueDate(dateString)}
+              style={{ width: 250 }}
             />
           </div>
 
@@ -321,4 +459,4 @@ const RecallTimeliness = () => {
   );
 };
 
-export default RecallTimeliness;
+export default MonitoringRecall;

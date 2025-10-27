@@ -265,6 +265,14 @@ export function reportCallHistory(body) {
   });
 }
 
+export function reportCallTimelines(body) {
+  let { date } = body;
+  return request({
+    url: `${API_ROOT}/report/recall_timelines?date=${date}`,
+    method: "GET",
+  });
+}
+
 export function reportRecall() {
   return request({
     url: `${API_ROOT}/report/recall`,
