@@ -144,9 +144,14 @@ const Recall = () => {
 
       const dbBli = databases.find((x) => x.dbname.includes("Lak"));
       const dbMitran = databases.find((x) => x.dbname.includes("Mit"));
+      const dbKampung = databases.find((x) => x.dbname.includes("Kam"));
 
       const getDb = (invoice) =>
-        invoice.startsWith("BLIN") ? dbBli : dbMitran;
+        invoice.startsWith("BLIN")
+          ? dbBli
+          : invoice.startsWith("SI")
+          ? dbKampung
+          : dbMitran;
 
       // Map data to an array of promises
       const syncPromises = data.map(async (item) => {

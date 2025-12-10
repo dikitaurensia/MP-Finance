@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Table, DatePicker, Button, Input, Space, Select } from "antd";
-import { get, getDataFromAccurate } from "../../service/endPoint";
+import {
+  Table,
+  DatePicker,
+  Button,
+  Input,
+  Space,
+  Select,
+  Modal,
+  Popover,
+} from "antd";
+import {
+  get,
+  getDataCallHistories,
+  getDataFromAccurate,
+} from "../../service/endPoint";
 import {
   FORMAT_DATE_FILTER_ACC,
   FORMAT_DATE_LABEL,
+  FORMAT_DATE_LABEL_FULL,
 } from "../../helper/constanta";
 import moment from "moment-timezone";
 import { ErrorMessage, formatCurrency } from "../../helper/publicFunction";
@@ -20,8 +34,12 @@ const Outstanding = () => {
 
   const [data, setData] = useState([]);
   const [dataExpanded, setDataExpanded] = useState([]);
+  const [dataOriginal, setDataOriginal] = useState([]);
 
   const [filteredData, setFilteredData] = useState([]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
   const [filterDueDate, setFilterDueDate] = useState(
     moment().format(FORMAT_DATE_FILTER_ACC)
@@ -38,7 +56,7 @@ const Outstanding = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     invoice: "",
-    customer: "",
+    customer_name: "",
   });
 
   const columns = [
@@ -48,6 +66,13 @@ const Outstanding = () => {
       key: "id",
       render: (text, record, index) => index + 1,
       width: 60,
+    },
+    {
+      title: "Customer Code",
+      dataIndex: "customer_code",
+      key: "customer_code",
+      width: 110,
+      sorter: (a, b) => a.customer_code.localeCompare(b.customer_code),
     },
     {
       title: "Customer Name",
@@ -101,11 +126,18 @@ const Outstanding = () => {
       width: 60,
     },
     {
+      title: "Customer Code",
+      dataIndex: "customer_code",
+      key: "customer_code",
+      width: 110,
+    },
+    {
       title: "Customer Name",
       dataIndex: "customer_name",
       key: "customer_name",
       width: 200,
     },
+
     {
       title: "Invoice",
       dataIndex: "number",
@@ -142,7 +174,41 @@ const Outstanding = () => {
       key: "dueDateView",
       width: 180,
     },
+    {
+      title: "Recall",
+      dataIndex: "totalRecall",
+      key: "totalRecall",
+      width: 100,
+      render: (value, record) => (
+        <Space size="small">
+          <Button
+            type="dashed"
+            size="small"
+            onClick={() => handleOpenModal(record)}
+            danger
+          >
+            {value}
+          </Button>
+        </Space>
+      ),
+    },
+    {
+      title: "Last Call",
+      dataIndex: "lastCall",
+      key: "lastCall",
+      width: 200,
+    },
   ];
+
+  const handleOpenModal = (record) => {
+    setSelectedRecord(record);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedRecord(null);
+  };
 
   const getData = async () => {
     setIsLoading(true);
@@ -181,16 +247,41 @@ const Outstanding = () => {
       }
     }
 
-    const datas = allData.map((item, index) => ({
-      ...item,
-      customer_name: item.customer.name,
-      id: index + 1,
-    }));
+    const ids = allData.map((x) => x.number);
+
+    const apiCallHistory = await getDataCallHistories(
+      "call_history",
+      ids.join(",")
+    );
+    const callHist = apiCallHistory.data.reduce((map, x) => {
+      if (!map.has(x.invoice)) {
+        map.set(x.invoice, { data: [], total: 0 });
+      }
+      const entry = map.get(x.invoice);
+      entry.data.push(x);
+      entry.total += 1;
+      entry.lastCall = x.created_at;
+      return map;
+    }, new Map());
+
+    const datas = allData.map((item, index) => {
+      const history = callHist.get(item.number) || {};
+      return {
+        ...item,
+        customer_name: item.customer.name,
+        customer_code: item.customer.customerNo,
+        totalRecall: history.total || 0,
+        lastCall: history.lastCall || "-",
+        calls: history.data || [],
+        id: index + 1,
+      };
+    });
 
     const summarize = summarizeInvoices(datas);
     setData(summarize);
     setFilteredData(summarize);
     setDataExpanded(datas);
+    setDataOriginal(datas);
     setIsLoading(false);
   };
 
@@ -212,6 +303,7 @@ const Outstanding = () => {
       invoices.reduce((acc, invoice) => {
         const {
           customer_name,
+          customer_code,
           primeOwing,
           dueDateView,
           transDateView,
@@ -220,6 +312,7 @@ const Outstanding = () => {
         if (!acc[customer_name]) {
           acc[customer_name] = {
             customer_name,
+            customer_code,
             totalOutstanding: 0,
             totalInvoice: 0,
             dueDateView: null,
@@ -269,19 +362,29 @@ const Outstanding = () => {
 
   useEffect(() => {
     const applyFilters = () => {
-      const filtered = data.filter((item) => {
+      const filtered = dataOriginal.filter((item) => {
         const customer = filters.customer_name || "";
+        const invoice = filters.invoice || "";
 
         const customerMatch = item.customer_name
           .toLowerCase()
           .includes(customer.toLowerCase());
 
-        return customerMatch;
+        const invoiceMatch = item.number
+          .toLowerCase()
+          .includes(invoice.toLowerCase());
+
+        return customerMatch && invoiceMatch;
       });
-      setFilteredData(filtered);
+      // setFilteredData(filtered);
+
+      const summarize = summarizeInvoices(filtered);
+      setFilteredData(summarize);
+
+      setDataExpanded(filtered);
     };
     applyFilters();
-  }, [filters, data]);
+  }, [filters, dataOriginal]);
 
   // Handle changes to filter inputs
   const handleFilterChange = (e) => {
@@ -303,6 +406,49 @@ const Outstanding = () => {
       />
     );
   };
+
+  const detailColumns = [
+    {
+      title: "No",
+      dataIndex: "no",
+      key: "no",
+      width: 50,
+      render: (value, item, index) => {
+        return index + 1;
+      },
+    },
+    {
+      title: "Date",
+      width: 120,
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (value, record) => (
+        <div>{value ? moment(value).format(FORMAT_DATE_LABEL_FULL) : "-"}</div>
+      ),
+    },
+    { title: "Sent to", width: 120, dataIndex: "phone_no", key: "phone_no" },
+    {
+      title: "Message",
+      width: 250,
+      dataIndex: "message",
+      key: "message",
+      render: (text) => {
+        const previewText =
+          text.length > 40 ? `${text.substring(0, 40)}...` : text;
+
+        const content = (
+          <div style={{ maxWidth: 400, whiteSpace: "pre-wrap" }}>{text}</div>
+        );
+
+        return (
+          <Popover content={content} title="Full Message" trigger="click">
+            <span style={{ cursor: "pointer" }}>{previewText}</span>
+          </Popover>
+        );
+      },
+    },
+    { title: "Status", width: 120, dataIndex: "status", key: "status" },
+  ];
 
   return (
     <div
@@ -344,6 +490,20 @@ const Outstanding = () => {
               onChange={(e) =>
                 handleFilterChange({
                   target: { name: "customer_name", value: e.target.value },
+                })
+              }
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Invoice:</label>
+            <Input
+              placeholder="Invoice"
+              style={{ width: 200 }}
+              value={filters.invoice}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "invoice", value: e.target.value },
                 })
               }
             />
@@ -431,6 +591,27 @@ const Outstanding = () => {
           }}
           rowClassName={() => "custom-hover-row"}
         />
+
+        <Modal
+          title={`Recall Detail - ${
+            selectedRecord ? selectedRecord.number : ""
+          }`}
+          open={isModalOpen}
+          onCancel={handleCloseModal}
+          footer={null}
+          width={1000}
+        >
+          {selectedRecord && (
+            <Table
+              columns={detailColumns}
+              dataSource={selectedRecord.calls || []}
+              rowKey="id"
+              pagination={false}
+              size="small"
+              rowClassName={() => "custom-hover-row"}
+            />
+          )}
+        </Modal>
       </Space>
     </div>
   );

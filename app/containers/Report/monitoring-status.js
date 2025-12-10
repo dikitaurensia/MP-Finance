@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, DatePicker, Button, Space, Select, Popover } from "antd";
+import { Table, DatePicker, Button, Space, Select, Popover, Input } from "antd";
 import {
   get,
   getDataCallHistories,
@@ -20,7 +20,9 @@ const MonitoringRecall = () => {
   const [databases, setDatabases] = useState([]);
 
   const [data, setData] = useState([]);
+  const [trigger, setTrigger] = useState(0);
   const [dataExpanded, setDataExpanded] = useState([]);
+  const [dataOriginal, setDataOriginal] = useState([]);
 
   const [filteredData, setFilteredData] = useState([]);
 
@@ -35,7 +37,7 @@ const MonitoringRecall = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     invoice: "",
-    customer: "",
+    customer_name: "",
   });
 
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -247,6 +249,7 @@ const MonitoringRecall = () => {
     setData(summarize);
     setFilteredData(summarize);
     setDataExpanded(datas);
+    setDataOriginal(datas);
     setIsLoading(false);
   };
 
@@ -266,11 +269,12 @@ const MonitoringRecall = () => {
   const summarizeInvoices = (invoices) => {
     return Object.values(
       invoices.reduce((acc, invoice) => {
-        const { customer_name } = invoice;
+        const { customer_name, number } = invoice;
 
         if (!acc[customer_name]) {
           acc[customer_name] = {
             customer_name,
+            number,
           };
         }
         return acc;
@@ -280,6 +284,11 @@ const MonitoringRecall = () => {
 
   const handleDBChange = (value) => {
     setSelectDB(value);
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   useEffect(() => {
@@ -294,20 +303,30 @@ const MonitoringRecall = () => {
 
   useEffect(() => {
     const applyFilters = () => {
-      const filtered = data.filter((item) => {
+      const filtered = dataOriginal.filter((item) => {
         const customer = filters.customer_name || "";
+        const invoice = filters.invoice || "";
 
-        const customerMatch = true;
-        // const customerMatch = item.customer_name
-        //   .toLowerCase()
-        //   .includes(customer.toLowerCase());
+        // const customerMatch = true;
+        const customerMatch = item.customer_name
+          .toLowerCase()
+          .includes(customer.toLowerCase());
 
-        return customerMatch;
+        const invoiceMatch = item.number
+          .toLowerCase()
+          .includes(invoice.toLowerCase());
+
+        return customerMatch && invoiceMatch;
       });
-      setFilteredData(filtered);
+      // setFilteredData(filtered);
+
+      const summarize = summarizeInvoices(filtered);
+      setFilteredData(summarize);
+
+      setDataExpanded(filtered);
     };
     applyFilters();
-  }, [filters, data]);
+  }, [filters, dataOriginal]);
 
   useEffect(() => {
     if (filteredData.length) {
@@ -361,7 +380,7 @@ const MonitoringRecall = () => {
               ))}
             </Select>
           </div>
-          {/* <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: 4 }}>Customer Name:</label>
             <Input
               placeholder="Customer Name"
@@ -373,7 +392,21 @@ const MonitoringRecall = () => {
                 })
               }
             />
-          </div> */}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: 4 }}>Invoice:</label>
+            <Input
+              placeholder="Invoice"
+              style={{ width: 200 }}
+              value={filters.invoice}
+              onChange={(e) =>
+                handleFilterChange({
+                  target: { name: "invoice", value: e.target.value },
+                })
+              }
+            />
+          </div>
 
           {/* <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: 4 }}>Activity Date:</label>
