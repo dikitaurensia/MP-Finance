@@ -92,7 +92,7 @@ const SalesInvoiceTable = () => {
   const [selectInvoice, setSelectInvoice] = useState(defaultSelectInvoice);
   const [selectBilledBy, setSelectBilledBy] = useState(defaultSelectBilledBy);
   const [totalCallOperator, setTotalCallOperator] = useState(
-    defaultTotalCallOperator
+    defaultTotalCallOperator,
   );
   const [totalCallValue, setTotalCallValue] = useState(defaultTotalCallValue);
   const [dueDate, setDueDate] = useState(defaultDueDate);
@@ -514,7 +514,7 @@ const SalesInvoiceTable = () => {
         const waMap = new Map(
           response.data
             .filter((x) => x.whatsapp2 || x.whatsapp)
-            .map((x) => [x.company, x])
+            .map((x) => [x.company, x]),
         );
         setdataWhatsappMap(waMap);
       }
@@ -530,7 +530,7 @@ const SalesInvoiceTable = () => {
       }
       const response = await getDataCallHistories(
         "call_history",
-        ids.join(",")
+        ids.join(","),
       );
 
       if (response.data.length > 0) {
@@ -590,7 +590,7 @@ const SalesInvoiceTable = () => {
 
         const grandTotal = customerInvoices.reduce(
           (acc, item) => acc + item.primeOwing,
-          0
+          0,
         );
 
         const phoneNo = customerInvoices[0].whatsapp2;
@@ -622,14 +622,14 @@ const SalesInvoiceTable = () => {
             db.dbname === "CV. Boss Lakban Indonesia"
               ? "BOSS LAKBAN INDONESIA, CV"
               : db.dbname === "Kampung Packing"
-              ? "SANTOSO JANUAR"
+              ? "AGUSTINA"
               : "MITRA ANUGERAH PACKINDO",
 
           accountNumber:
             db.dbname === "CV. Boss Lakban Indonesia"
               ? "2118888028"
               : db.dbname === "Kampung Packing"
-              ? "5280233546"
+              ? "2110469597"
               : "2118398888",
         };
 
@@ -678,7 +678,7 @@ const SalesInvoiceTable = () => {
               (invoice) =>
                 `${counter++}. Faktur penjualan ${
                   invoice.number
-                } - Rp. ${formatCurrency(invoice.primeOwing)}`
+                } - Rp. ${formatCurrency(invoice.primeOwing)}`,
             )
             .join("\n");
 
@@ -690,7 +690,7 @@ const SalesInvoiceTable = () => {
           customerInvoices.map((invoice) => invoice.hash).join(",");
 
         message += `*Total Invoice: Rp. ${formatCurrency(
-          grandTotal
+          grandTotal,
         )}*\n\n${payment}\n\nTerlampir link dokumen invoice dibawah ini:\n\n${invoiceLinks}`;
 
         // message += `\n\nTerima Kasih,\n${
@@ -701,12 +701,12 @@ const SalesInvoiceTable = () => {
 
         message = message.replace(
           new RegExp(escapeRegExp("{{customerName}}"), "g"),
-          customerName
+          customerName,
         );
 
         message = message.replace(
           new RegExp(escapeRegExp("{{companyName}}"), "g"),
-          db.dbname
+          db.dbname,
         );
 
         const now = moment()
@@ -737,12 +737,12 @@ const SalesInvoiceTable = () => {
 
   const generateMultipleWhatsApp = () => {
     const invoiceWithoutWAVerify = selectedRows.filter(
-      (row) => row.whatsapp2Verified != "true"
+      (row) => row.whatsapp2Verified != "true",
     );
     if (invoiceWithoutWAVerify.length > 0) {
       const uniqueByCompany = [
         ...new Map(
-          selectedRows.map((item) => [item.customerName, item])
+          selectedRows.map((item) => [item.customerName, item]),
         ).values(),
       ].sort((a, b) => {
         const av = a.whatsapp2Verified === "false" ? 1 : 0;
@@ -839,7 +839,7 @@ const SalesInvoiceTable = () => {
       let billedByMatch = true;
       if (selectBilledBy.length !== 0) {
         billedByMatch = selectBilledBy.some((b) =>
-          item.billedBy.toLowerCase().includes(b.toLowerCase())
+          item.billedBy.toLowerCase().includes(b.toLowerCase()),
         );
       }
       let recallMatch = true;
@@ -911,7 +911,7 @@ const SalesInvoiceTable = () => {
             .map((row) => row.key);
 
           const newSelectedRows = filteredData.filter((row) =>
-            newSelectedRowKeys.includes(row.key)
+            newSelectedRowKeys.includes(row.key),
           );
 
           handleSelectRows(newSelectedRowKeys, newSelectedRows);
@@ -926,7 +926,7 @@ const SalesInvoiceTable = () => {
             .map((row) => row.key);
 
           const newSelectedRows = filteredData.filter((row) =>
-            newSelectedRowKeys.includes(row.key)
+            newSelectedRowKeys.includes(row.key),
           );
 
           handleSelectRows(newSelectedRowKeys, newSelectedRows);
